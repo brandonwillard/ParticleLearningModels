@@ -3,4 +3,5 @@
 .classpath
 bin/
 target/
+.metadata/
 

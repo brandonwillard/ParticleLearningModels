@@ -13,7 +13,7 @@ import gov.sandia.cognition.statistics.distribution.NormalInverseWishartDistribu
  * @author bwillard
  *
  */
-public class MultivariateGaussianDPDistribution extends
+public class MvGaussianDPDistribution extends
     MultivariateMixtureDensityModel<MultivariateGaussian> {
   
   private NormalInverseWishartDistribution centeringDistribution;
@@ -29,7 +29,7 @@ public class MultivariateGaussianDPDistribution extends
   private double[] componentPriorPredLogLikelihoods = null;
   private double componentPriorPredTotalLogLikelihood = Double.NEGATIVE_INFINITY;
 
-  public MultivariateGaussianDPDistribution(List<MultivariateGaussian> priorComponents,
+  public MvGaussianDPDistribution(List<MultivariateGaussian> priorComponents,
     NormalInverseWishartDistribution normalInverseWishartDistribution, double dpAlphaPrior, Vector nCounts) {
     super(priorComponents, nCounts.scale(1d/nCounts.norm1()).toArray());
     this.centeringDistribution = normalInverseWishartDistribution;

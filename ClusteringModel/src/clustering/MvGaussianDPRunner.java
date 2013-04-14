@@ -6,25 +6,19 @@ import java.util.Random;
 import com.google.common.collect.Lists;
 
 import gov.sandia.cognition.math.MutableDouble;
-import gov.sandia.cognition.math.Ring;
 import gov.sandia.cognition.math.RingAccumulator;
-import gov.sandia.cognition.math.RingAverager;
 import gov.sandia.cognition.math.matrix.Matrix;
 import gov.sandia.cognition.math.matrix.MatrixFactory;
 import gov.sandia.cognition.math.matrix.Vector;
 import gov.sandia.cognition.math.matrix.VectorFactory;
 import gov.sandia.cognition.statistics.DataDistribution;
-import gov.sandia.cognition.statistics.bayesian.BayesianCredibleInterval;
-import gov.sandia.cognition.statistics.bayesian.DirichletProcessMixtureModel;
-import gov.sandia.cognition.statistics.distribution.DirichletDistribution;
 import gov.sandia.cognition.statistics.distribution.InverseWishartDistribution;
 import gov.sandia.cognition.statistics.distribution.MultivariateGaussian;
 import gov.sandia.cognition.statistics.distribution.MultivariateMixtureDensityModel;
 import gov.sandia.cognition.statistics.distribution.NormalInverseWishartDistribution;
 import gov.sandia.cognition.statistics.distribution.UnivariateGaussian;
-import gov.sandia.cognition.statistics.method.ConfidenceInterval;
 
-public class MultivariateDirichletProcessRunner {
+public class MvGaussianDPRunner {
 
 	public static void main(String[] args) {
 	  
@@ -98,11 +92,11 @@ public class MultivariateDirichletProcessRunner {
 	  /*
 	   * Create and initialize the PL filter
 	   */
-	  MultivariateGaussianDPPLFilter plFilter = new MultivariateGaussianDPPLFilter(
+	  MvGaussianDPPLFilter plFilter = new MvGaussianDPPLFilter(
 	      priorComponents, centeringPrior, dpAlphaPrior, nCountsPrior, rng);
 	  plFilter.setNumParticles(100);
 	  
-	  DataDistribution<MultivariateGaussianDPDistribution> currentMixtureDistribution =
+	  DataDistribution<MvGaussianDPDistribution> currentMixtureDistribution =
 	      plFilter.createInitialLearnedObject();
 	  for (Vector observation : observations) {
 	    System.out.println("obs:" + observation);
@@ -114,7 +108,7 @@ public class MultivariateDirichletProcessRunner {
 	    UnivariateGaussian.SufficientStatistic rmseSuffStat = new UnivariateGaussian.SufficientStatistic();
 	    RingAccumulator<MutableDouble> countSummary = new RingAccumulator<>();
 	    
-  	  for (MultivariateGaussianDPDistribution mixtureDist : currentMixtureDistribution.getDomain()) {
+  	  for (MvGaussianDPDistribution mixtureDist : currentMixtureDistribution.getDomain()) {
   	    rmseSuffStat.update(observation.minus(mixtureDist.getMean()).norm2());
   	    countSummary.accumulate(new MutableDouble(mixtureDist.getDistributionCount()));
   	  }

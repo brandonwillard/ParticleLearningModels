@@ -7,41 +7,29 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 
-import no.uib.cipr.matrix.DenseCholesky;
-
-import org.omg.CORBA.DoubleSeqHelper;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-
-import gov.sandia.cognition.collection.ArrayUtil;
 import gov.sandia.cognition.math.LogMath;
-import gov.sandia.cognition.math.UnivariateStatisticsUtil;
 import gov.sandia.cognition.math.matrix.Matrix;
 import gov.sandia.cognition.math.matrix.MatrixFactory;
 import gov.sandia.cognition.math.matrix.Vector;
 import gov.sandia.cognition.math.matrix.VectorFactory;
-import gov.sandia.cognition.math.matrix.mtj.DenseMatrixFactoryMTJ;
 import gov.sandia.cognition.statistics.DataDistribution;
-import gov.sandia.cognition.statistics.DiscreteSamplingUtil;
 import gov.sandia.cognition.statistics.bayesian.AbstractParticleFilter;
-import gov.sandia.cognition.statistics.bayesian.BayesianUtil;
 import gov.sandia.cognition.statistics.distribution.DefaultDataDistribution;
 import gov.sandia.cognition.statistics.distribution.MultivariateGaussian;
 import gov.sandia.cognition.statistics.distribution.MultivariateStudentTDistribution;
 import gov.sandia.cognition.statistics.distribution.NormalInverseWishartDistribution;
-import gov.sandia.cognition.statistics.distribution.StudentTDistribution;
 import gov.sandia.cognition.util.AbstractCloneableSerializable;
 import gov.sandia.cognition.util.ObjectUtil;
 
-public class MultivariateGaussianDPPLFilter extends 
-  AbstractParticleFilter<Vector, MultivariateGaussianDPDistribution> {
+public class MvGaussianDPPLFilter extends 
+  AbstractParticleFilter<Vector, MvGaussianDPDistribution> {
 
   public class MultivariateGaussianDPPLUpdater
       extends AbstractCloneableSerializable
       implements
-      Updater<Vector, MultivariateGaussianDPDistribution> {
+      Updater<Vector, MvGaussianDPDistribution> {
     
     final private NormalInverseWishartDistribution centeringDistPrior;
     final private double dpAlphaPrior;
@@ -64,18 +52,18 @@ public class MultivariateGaussianDPPLFilter extends
      * @see gov.sandia.cognition.statistics.bayesian.ParticleFilter.Updater#update(java.lang.Object)
      */
     @Override
-    public MultivariateGaussianDPDistribution update(
-      MultivariateGaussianDPDistribution previousParameter) {
+    public MvGaussianDPDistribution update(
+      MvGaussianDPDistribution previousParameter) {
       return previousParameter;
     }
 
     @Override
-    public DataDistribution<MultivariateGaussianDPDistribution>
+    public DataDistribution<MvGaussianDPDistribution>
         createInitialParticles(int numParticles) {
       
-      DefaultDataDistribution<MultivariateGaussianDPDistribution> initialParticles = new DefaultDataDistribution<>(numParticles);
+      DefaultDataDistribution<MvGaussianDPDistribution> initialParticles = new DefaultDataDistribution<>(numParticles);
       for (int i = 0; i < numParticles; i++) {
-        MultivariateGaussianDPDistribution particleMvgDPDist = new MultivariateGaussianDPDistribution(
+        MvGaussianDPDistribution particleMvgDPDist = new MvGaussianDPDistribution(
             ObjectUtil.cloneSmartElementsAsArrayList(this.priorComponents),
             this.centeringDistPrior.clone(),
             this.dpAlphaPrior, 
@@ -92,7 +80,7 @@ public class MultivariateGaussianDPPLFilter extends
     @Override
     public double
         computeLogLikelihood(
-          MultivariateGaussianDPDistribution particle,
+          MvGaussianDPDistribution particle,
           Vector observation) {
       
       double[] componentPriorPredLogLikelihoods = new double[particle.getDistributionCount() + 1];
@@ -158,7 +146,7 @@ public class MultivariateGaussianDPPLFilter extends
 
   }
 
-  public MultivariateGaussianDPPLFilter(
+  public MvGaussianDPPLFilter(
     List<MultivariateGaussian> priorComponents,
     NormalInverseWishartDistribution centeringDistributionPrior, 
     double dpAlphaPrior, Vector nCountsPrior, Random rng) {
@@ -174,7 +162,7 @@ public class MultivariateGaussianDPPLFilter extends
   public
       void
       update(
-        DataDistribution<MultivariateGaussianDPDistribution> target,
+        DataDistribution<MvGaussianDPDistribution> target,
         Vector data) {
     Preconditions.checkState(target.getDomainSize() == this.numParticles);
     
@@ -183,9 +171,9 @@ public class MultivariateGaussianDPPLFilter extends
      */
     double particleTotalLogLikelihood = Double.NEGATIVE_INFINITY;
     double[] cumulativeLogLikelihoods = new double[this.numParticles]; 
-    List<MultivariateGaussianDPDistribution> particleSupport = Lists.newArrayList(target.getDomain());
+    List<MvGaussianDPDistribution> particleSupport = Lists.newArrayList(target.getDomain());
     int j = 0;
-    for (MultivariateGaussianDPDistribution particle : particleSupport) {
+    for (MvGaussianDPDistribution particle : particleSupport) {
       final double logLikelihood = this.updater.computeLogLikelihood(particle, data);
       cumulativeLogLikelihoods[j] = 
           j > 0 ? LogMath.add(cumulativeLogLikelihoods[j-1], logLikelihood) : logLikelihood;
@@ -193,15 +181,15 @@ public class MultivariateGaussianDPPLFilter extends
       j++;               
     }
     
-    List<MultivariateGaussianDPDistribution> resampledParticles = 
+    List<MvGaussianDPDistribution> resampledParticles = 
         sampleMultipleLogScale(cumulativeLogLikelihoods, particleTotalLogLikelihood, particleSupport, random, 
             this.numParticles);
     
     /*
      * Propagate
      */
-    DataDistribution<MultivariateGaussianDPDistribution> updatedDist = new DefaultDataDistribution<>();
-    for (MultivariateGaussianDPDistribution particle : resampledParticles) {
+    DataDistribution<MvGaussianDPDistribution> updatedDist = new DefaultDataDistribution<>();
+    for (MvGaussianDPDistribution particle : resampledParticles) {
       
       /*
        * First, sample a mixture component index
@@ -248,7 +236,7 @@ public class MultivariateGaussianDPPLFilter extends
         sampledComponentDist.setMean(updatedComponentMean);
       }
       
-      MultivariateGaussianDPDistribution updatedParticle = new MultivariateGaussianDPDistribution(
+      MvGaussianDPDistribution updatedParticle = new MvGaussianDPDistribution(
           updatedComponentDists, particle.getCenteringDistribution(), particle.getAlpha(), 
           updatedCounts);
       updatedParticle.setIndex(particle.getIndex() + 1);
@@ -266,14 +254,14 @@ public class MultivariateGaussianDPPLFilter extends
   }
 
   private
-      List<MultivariateGaussianDPDistribution>
+      List<MvGaussianDPDistribution>
       lowVarianceSample(
-        Map<MultivariateGaussianDPDistribution, Double> resampleParticles) {
-    List<MultivariateGaussianDPDistribution> resampledParticles = Lists.newArrayList();
+        Map<MvGaussianDPDistribution, Double> resampleParticles) {
+    List<MvGaussianDPDistribution> resampledParticles = Lists.newArrayList();
     final double M = resampleParticles.size();
     final double r = random.nextDouble() / M;
-    final Iterator<Entry<MultivariateGaussianDPDistribution, Double>> pIter = resampleParticles.entrySet().iterator();
-    Entry<MultivariateGaussianDPDistribution, Double> p = pIter.next();
+    final Iterator<Entry<MvGaussianDPDistribution, Double>> pIter = resampleParticles.entrySet().iterator();
+    Entry<MvGaussianDPDistribution, Double> p = pIter.next();
     double c = p.getValue();
     for (int m = 0; m < M; ++m) {
       final double U = Math.log(r + m / M);
@@ -286,13 +274,13 @@ public class MultivariateGaussianDPPLFilter extends
     return resampledParticles;
   }
 
-  private List<MultivariateGaussianDPDistribution> sampleMultipleLogScale(
+  private List<MvGaussianDPDistribution> sampleMultipleLogScale(
     final double[] cumulativeLogWeights, final double logWeightSum,
-    final List<MultivariateGaussianDPDistribution> domain, final Random random,
+    final List<MvGaussianDPDistribution> domain, final Random random,
     final int numSamples) {
 
     int index;
-    List<MultivariateGaussianDPDistribution> samples = Lists.newArrayListWithCapacity(numSamples);
+    List<MvGaussianDPDistribution> samples = Lists.newArrayListWithCapacity(numSamples);
     for (int n = 0; n < numSamples; n++) {
       double p = logWeightSum + Math.log(random.nextDouble());
       index = Arrays.binarySearch(cumulativeLogWeights, p);

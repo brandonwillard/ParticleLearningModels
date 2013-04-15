@@ -21,9 +21,9 @@ import gov.sandia.cognition.statistics.distribution.UnivariateGaussian;
 /**
  * This class produces draws from a multivariate Gaussian
  * mixture model and fits them with a Dirichlet Process 
- * mixture of Gaussians using a Particle Learning filter.<br>
- * 
- * This model is from Section 4.2 of 
+ * mixture of Gaussians using a Particle Learning filter.
+ * <br><br>
+ * The model is from Example 2 of 
  * <a href="http://faculty.chicagobooth.edu/nicholas.polson/research/papers/Bmix.pdf">
  * "Particle Learning for General Mixtures"</a>
  * 

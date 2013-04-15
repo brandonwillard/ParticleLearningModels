@@ -90,7 +90,7 @@ public class MvGaussianDPPLFilter extends
        */
       NormalInverseWishartDistribution centeringDist = particle.getCenteringDistribution();
       final double newComponentPriorPredDof = 2d * centeringDist.getInverseWishart().getDegreesOfFreedom()
-          - centeringDist.getInputDimensionality() + 1;
+          - centeringDist.getInputDimensionality() + 1d;
       final double kappa = centeringDist.getCovarianceDivisor();
       Matrix newComponentPriorPredPrecision = centeringDist.getInverseWishart().getInverseScale().
           scale(2d * (kappa + 1d)/(kappa * newComponentPriorPredDof));
@@ -113,7 +113,7 @@ public class MvGaussianDPPLFilter extends
         final double componentPriorPredDof = 2d * centeringDist.getInverseWishart().getDegreesOfFreedom()
             + componentN - centeringDist.getInputDimensionality() + 1d;
         final Vector componentPriorPredMean = centeringDist.getGaussian().getMean().scale(kappa).
-            plus(component.getMean().scale(componentN)).scale(kappa + componentN);
+            plus(component.getMean().scale(componentN)).scale(1d/(kappa + componentN));
         
         
         Vector componentCenteringMeanDiff = centeringDist.getGaussian().getMean().minus(component.getMean());
@@ -221,18 +221,18 @@ public class MvGaussianDPPLFilter extends
         updatedCounts = particle.getCounts().clone();
         final int adjComponentIndex = componentIndex - 1;
         final double oldComponentCount = updatedCounts.getElement(adjComponentIndex);
-        final double updatedComponentCount = oldComponentCount  + 1;
+        final double updatedComponentCount = oldComponentCount  + 1d;
         updatedCounts.setElement(adjComponentIndex, updatedComponentCount);
         
         MultivariateGaussian sampledComponentDist = updatedComponentDists.get(adjComponentIndex);
         Vector oldComponentMean = sampledComponentDist.getMean();
         Vector updatedComponentMean = oldComponentMean.scale(oldComponentCount).plus(data).scale(1d/updatedComponentCount);
-        Matrix updatedComponentCovariance = sampledComponentDist.getCovariance().
+        Matrix updatedComponentSS = sampledComponentDist.getCovariance().
             plus(data.outerProduct(data)).
             plus(oldComponentMean.outerProduct(oldComponentMean).scale(oldComponentCount)).
             minus(updatedComponentMean.outerProduct(updatedComponentMean).scale(updatedComponentCount));
         
-        sampledComponentDist.setCovariance(updatedComponentCovariance);
+        sampledComponentDist.setCovariance(updatedComponentSS);
         sampledComponentDist.setMean(updatedComponentMean);
       }
       

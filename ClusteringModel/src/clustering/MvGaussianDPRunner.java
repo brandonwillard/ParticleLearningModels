@@ -18,6 +18,18 @@ import gov.sandia.cognition.statistics.distribution.MultivariateMixtureDensityMo
 import gov.sandia.cognition.statistics.distribution.NormalInverseWishartDistribution;
 import gov.sandia.cognition.statistics.distribution.UnivariateGaussian;
 
+/**
+ * This class produces draws from a multivariate Gaussian
+ * mixture model and fits them with a Dirichlet Process 
+ * mixture of Gaussians using a Particle Learning filter.<br>
+ * 
+ * This model is from Section 4.2 of 
+ * <a href="http://faculty.chicagobooth.edu/nicholas.polson/research/papers/Bmix.pdf">
+ * "Particle Learning for General Mixtures"</a>
+ * 
+ * @author bwillard
+ *
+ */
 public class MvGaussianDPRunner {
 
 	public static void main(String[] args) {
@@ -49,19 +61,24 @@ public class MvGaussianDPRunner {
 	      trueComponentModels, trueComponentWeights);
 	  
 	  Random rng = new Random(829351983l);
-	  List<Vector> observations = trueMixture.sample(rng, 100);
+	  /*
+	   * Sample a lot of test data to fit against.
+	   * TODO For a proper study, we would randomize subsets of this data
+	   * and fit against those.
+	   */
+	  List<Vector> observations = trueMixture.sample(rng, 10000);
 	  
 	  /*
 	   * Instantiate PL filter by first providing prior parameters/distributions. 
-	   * We start by creating a prior conjugate centering distribution, then 
-	   * we provide the Dirichlet Process prior parameters (group counts and
-	   * concentration parameter).
+	   * We start by creating a prior conjugate centering distribution (which is
+	   * a Normal Inverse Wishart), then we provide the Dirichlet Process prior 
+	   * parameters (group counts and concentration parameter).
 	   */
 	  final int centeringCovDof  = 2 + 2;
 	  Matrix centeringCovPriorMean = MatrixFactory.getDenseDefault().copyArray(new double[][] {
-	          {1d, 0d},
-	          {0d, 1d}
-	      }).scale(1d/(centeringCovDof - 0.5d * (2d + 1d)));
+	          {1000d, 0d},
+	          {0d, 1000d}
+	      });
 	  InverseWishartDistribution centeringCovariancePrior = new InverseWishartDistribution(
 	      centeringCovPriorMean.scale(centeringCovDof - centeringCovPriorMean.getNumColumns() - 1d), 
 	      centeringCovDof);
@@ -72,29 +89,20 @@ public class MvGaussianDPRunner {
 	  NormalInverseWishartDistribution centeringPrior = new NormalInverseWishartDistribution(
 	      centeringMeanPrior, centeringCovariancePrior, centeringCovDivisor);
 	  final double dpAlphaPrior = 2d;
-	  Vector nCountsPrior = VectorFactory.getDenseDefault().copyArray(new double[] {
-	      1, 1
-	  });
+	  
+	  /*
+	   * Initialize the an empty mixture.  The components will be created form
+	   * the Dirichlet process defined above. 
+	   */
+	  Vector nCountsPrior = VectorFactory.getDenseDefault().copyArray(new double[] {});
 	  List<MultivariateGaussian> priorComponents = Lists.newArrayList(); 
-	  priorComponents.add(new MultivariateGaussian(
-	      VectorFactory.getDenseDefault().copyArray(new double[] {70d, 10d}),
-	      MatrixFactory.getDenseDefault().copyArray(new double[][] {
-	          {100d, 0d},
-	          {0d, 100d}
-	      }))); 
-	  priorComponents.add(new MultivariateGaussian(
-	      VectorFactory.getDenseDefault().copyArray(new double[] {10d, -10d}),
-	      MatrixFactory.getDenseDefault().copyArray(new double[][] {
-	          {100d, 0d},
-	          {0d, 100d}
-	      }))); 
 	  
 	  /*
 	   * Create and initialize the PL filter
 	   */
 	  MvGaussianDPPLFilter plFilter = new MvGaussianDPPLFilter(
 	      priorComponents, centeringPrior, dpAlphaPrior, nCountsPrior, rng);
-	  plFilter.setNumParticles(100);
+	  plFilter.setNumParticles(500);
 	  
 	  DataDistribution<MvGaussianDPDistribution> currentMixtureDistribution =
 	      plFilter.createInitialLearnedObject();

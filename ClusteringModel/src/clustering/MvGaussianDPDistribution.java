@@ -9,7 +9,8 @@ import gov.sandia.cognition.statistics.distribution.NormalInverseWishartDistribu
 
 /**
  * A multivariate Gaussian Dirichlet Process mixture distribution.
- * Essentially, a standard mixture with a concentration parameter.
+ * Important: the Gaussian distributions have their covariances set
+ * to the sum of squares for their respective components. 
  * @author bwillard
  *
  */

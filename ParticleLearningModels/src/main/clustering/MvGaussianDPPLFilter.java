@@ -7,8 +7,11 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 
+import utils.SamplingUtils;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+
 import gov.sandia.cognition.math.LogMath;
 import gov.sandia.cognition.math.matrix.Matrix;
 import gov.sandia.cognition.math.matrix.MatrixFactory;
@@ -23,6 +26,12 @@ import gov.sandia.cognition.statistics.distribution.NormalInverseWishartDistribu
 import gov.sandia.cognition.util.AbstractCloneableSerializable;
 import gov.sandia.cognition.util.ObjectUtil;
 
+/**
+ * A Particle Learning filter for a multivariate Gaussian Dirichlet Process.
+ * 
+ * @author bwillard
+ *
+ */
 public class MvGaussianDPPLFilter extends 
   AbstractParticleFilter<Vector, MvGaussianDPDistribution> {
 
@@ -49,7 +58,7 @@ public class MvGaussianDPPLFilter extends
     }
 
     /**
-     * @see gov.sandia.cognition.statistics.bayesian.ParticleFilter.Updater#update(java.lang.Object)
+     * In this model/filter, there's no need for blind samples from the predictive distribution.
      */
     @Override
     public MvGaussianDPDistribution update(
@@ -182,7 +191,7 @@ public class MvGaussianDPPLFilter extends
     }
     
     List<MvGaussianDPDistribution> resampledParticles = 
-        sampleMultipleLogScale(cumulativeLogLikelihoods, particleTotalLogLikelihood, particleSupport, random, 
+        SamplingUtils.sampleMultipleLogScale(cumulativeLogLikelihoods, particleTotalLogLikelihood, particleSupport, random, 
             this.numParticles);
     
     /*
@@ -194,7 +203,7 @@ public class MvGaussianDPPLFilter extends
       /*
        * First, sample a mixture component index
        */
-      final int componentIndex = sampleIndexFromLogProbabilities(random, 
+      final int componentIndex = SamplingUtils.sampleIndexFromLogProbabilities(random, 
           particle.getComponentPriorPredLogLikelihoods(), 
           particle.getComponentPriorPredTotalLogLikelihood());
       
@@ -251,58 +260,5 @@ public class MvGaussianDPPLFilter extends
     
     target.clear();
     target.incrementAll(updatedDist);
-  }
-
-  private
-      List<MvGaussianDPDistribution>
-      lowVarianceSample(
-        Map<MvGaussianDPDistribution, Double> resampleParticles) {
-    List<MvGaussianDPDistribution> resampledParticles = Lists.newArrayList();
-    final double M = resampleParticles.size();
-    final double r = random.nextDouble() / M;
-    final Iterator<Entry<MvGaussianDPDistribution, Double>> pIter = resampleParticles.entrySet().iterator();
-    Entry<MvGaussianDPDistribution, Double> p = pIter.next();
-    double c = p.getValue();
-    for (int m = 0; m < M; ++m) {
-      final double U = Math.log(r + m / M);
-      while (U > c && pIter.hasNext()) {
-        p = pIter.next();
-        c = LogMath.add(p.getValue(), c);
-      }
-      resampledParticles.add(p.getKey());
-    }   
-    return resampledParticles;
-  }
-
-  private List<MvGaussianDPDistribution> sampleMultipleLogScale(
-    final double[] cumulativeLogWeights, final double logWeightSum,
-    final List<MvGaussianDPDistribution> domain, final Random random,
-    final int numSamples) {
-
-    int index;
-    List<MvGaussianDPDistribution> samples = Lists.newArrayListWithCapacity(numSamples);
-    for (int n = 0; n < numSamples; n++) {
-      double p = logWeightSum + Math.log(random.nextDouble());
-      index = Arrays.binarySearch(cumulativeLogWeights, p);
-      if (index < 0) {
-        int insertionPoint = -index - 1;
-        index = insertionPoint;
-      }
-      samples.add(domain.get(index));
-    }
-    return samples;
-
-  }
-    
-  private int sampleIndexFromLogProbabilities(final Random random, final double[] logProbs, double totalLogProbs) {
-    double value = Math.log(random.nextDouble());
-    final int lastIndex = logProbs.length - 1;
-    for (int i = 0; i < lastIndex; i++) {
-      value = LogMath.subtract(value, logProbs[i] - totalLogProbs);
-      if (Double.isNaN(value) || value == Double.NEGATIVE_INFINITY) {
-        return i;
-      }
-    }
-    return lastIndex;
   }
 }

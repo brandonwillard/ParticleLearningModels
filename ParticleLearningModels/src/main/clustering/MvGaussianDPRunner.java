@@ -37,7 +37,7 @@ public class MvGaussianDPRunner {
 	  /*
 	   * Create a mixture distribution to fit.
 	   */
-	  double[] trueComponentWeights = new double[] {0.1d, 0.5, 0.4};
+	  double[] trueComponentWeights = new double[] {0.1d, 0.5d, 0.1d, 0.2d, 0.1d};
 	  List<MultivariateGaussian> trueComponentModels = Lists.newArrayList();
 	  trueComponentModels.add(new MultivariateGaussian(
 	      VectorFactory.getDenseDefault().copyArray(new double[] {0d, 0d}),
@@ -57,6 +57,19 @@ public class MvGaussianDPRunner {
 	          {100d, 0d},
 	          {0d, 100d}
 	      }))); 
+	  trueComponentModels.add(new MultivariateGaussian(
+	      VectorFactory.getDenseDefault().copyArray(new double[] {1d, -200d}),
+	      MatrixFactory.getDenseDefault().copyArray(new double[][] {
+	          {10d, 0d},
+	          {0d, 10d}
+	      }))); 
+	  trueComponentModels.add(new MultivariateGaussian(
+	      VectorFactory.getDenseDefault().copyArray(new double[] {50d, -50d}),
+	      MatrixFactory.getDenseDefault().copyArray(new double[][] {
+	          {20d, 0d},
+	          {0d, 20d}
+	      }))); 
+	  
 	  MultivariateMixtureDensityModel<MultivariateGaussian> trueMixture = new MultivariateMixtureDensityModel<MultivariateGaussian>(
 	      trueComponentModels, trueComponentWeights);
 	  
@@ -111,7 +124,8 @@ public class MvGaussianDPRunner {
 	    plFilter.update(currentMixtureDistribution, observation);
 	    
 	    /*
-	     * Compute RMSE summary stats
+	     * Compute some summary stats.
+	     * TODO We need to compute something informative for this situation.
 	     */
 	    UnivariateGaussian.SufficientStatistic rmseSuffStat = new UnivariateGaussian.SufficientStatistic();
 	    RingAccumulator<MutableDouble> countSummary = new RingAccumulator<>();
@@ -120,11 +134,11 @@ public class MvGaussianDPRunner {
   	    rmseSuffStat.update(observation.minus(mixtureDist.getMean()).norm2());
   	    countSummary.accumulate(new MutableDouble(mixtureDist.getDistributionCount()));
   	  }
-//  	  BayesianCredibleInterval ci = BayesianCredibleInterval.compute(rmseSuffStat.create(), 0.97d);
-//	    System.out.println("posterior RMSE 97% credible interval:" + ci);
 	    System.out.println("posterior RMSE mean:" + rmseSuffStat.getMean());
 	    System.out.println("posterior component counts:" + countSummary.getMean());
 	  }
+	  
+  	System.out.println("finished simulation");
 
 	}
 

@@ -86,4 +86,18 @@ public class MvGaussianDPDistribution extends
     return componentPriorPredTotalLogLikelihood;
   }
 
+  @Override
+  public String toString() {
+    StringBuilder retval = new StringBuilder(1000);
+    retval.append("LinearMixtureModel has " + this.getDistributionCount() + " distributions:\n");
+    int k = 0;
+    for(MultivariateGaussian distribution : this.getDistributions() ) {
+      retval.append( " " + k + ": Prior: " + this.getPriorWeights()[k] + ", Distribution:\nMean: " 
+        + distribution.getMean() + "\nCovariance:" 
+          + distribution.getCovariance().scale(1d/this.nCounts.getElement(k)) + "\n" );
+      k++;
+    }
+    return retval.toString();
+  }
+
 }

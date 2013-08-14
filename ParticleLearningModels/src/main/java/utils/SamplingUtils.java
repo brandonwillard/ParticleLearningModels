@@ -3,6 +3,9 @@ package utils;
 import gov.sandia.cognition.collection.ArrayUtil;
 import gov.sandia.cognition.math.LogMath;
 import gov.sandia.cognition.statistics.DataDistribution;
+import gov.sandia.cognition.statistics.DiscreteSamplingUtil;
+import gov.sandia.cognition.statistics.bayesian.BayesianUtil;
+import gov.sandia.cognition.statistics.distribution.CategoricalDistribution;
 import gov.sandia.cognition.util.DefaultPair;
 import gov.sandia.cognition.util.DefaultWeightedValue;
 import gov.sandia.cognition.util.Pair;
@@ -14,6 +17,7 @@ import java.util.List;
 import java.util.Random;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.primitives.Doubles;
 
@@ -27,6 +31,7 @@ public class SamplingUtils {
 
     final List<Double> nLogWeights = Doubles.asList(logWeights);
     final List<Double> nonZeroWeights = Lists.newArrayList();
+    final List<Double> cumNonZeroWeights = Lists.newArrayList();
     final List<D> nonZeroObjects = Lists.newArrayList();
     double nonZeroTotal = Double.NEGATIVE_INFINITY;
     for (int i = 0; i < nLogWeights.size(); i++) {
@@ -36,6 +41,7 @@ public class SamplingUtils {
         nonZeroObjects.add(domain.get(i));
         nonZeroWeights.add(logWeight);
         nonZeroTotal = LogMath2.add(nonZeroTotal, logWeight);
+        cumNonZeroWeights.add(nonZeroTotal);
       }
     }
   
@@ -52,26 +58,24 @@ public class SamplingUtils {
       /*
        * In this case, we need to just plain 'ol resample 
        */
-      resultObjects = sampleMultipleLogScale(Doubles.toArray(nonZeroWeights), 
+      resultObjects = sampleMultipleLogScale(Doubles.toArray(cumNonZeroWeights), 
           nonZeroTotal, nonZeroObjects, random, N);
-      resultWeights = Lists.newArrayListWithCapacity(nonZeroCount);
-      Collections.fill(resultWeights, -Math.log(nonZeroCount));
+      resultWeights = Collections.nCopies(N, -Math.log(N));
     } else {
       final double logAlpha = findLogAlpha(Doubles.toArray(nonZeroWeights), N);
       if (logAlpha == 0) {
         /*
          * Plain 'ol resample here, too 
          */
-        resultObjects = sampleMultipleLogScale(Doubles.toArray(nonZeroWeights), 
+        resultObjects = sampleMultipleLogScale(Doubles.toArray(cumNonZeroWeights), 
             nonZeroTotal, nonZeroObjects, random, N);
-        resultWeights = Lists.newArrayListWithCapacity(N);
-        Collections.fill(resultWeights, -Math.log(N));
+        resultWeights = Collections.nCopies(N, -Math.log(N));
       } else {
 
         List<Double> logPValues = Lists.newArrayListWithCapacity(nonZeroCount);
         List<Double> keeperLogWeights = Lists.newArrayList();
         List<D> keeperObjects = Lists.newArrayList();
-        List<Double> belowLogWeights = Lists.newArrayList();
+        List<Double> cummBelowLogWeights = Lists.newArrayList();
         List<D> belowObjects = Lists.newArrayList();
         double belowPTotal = Double.NEGATIVE_INFINITY;
         for (int j = 0; j < nonZeroWeights.size(); j++) {
@@ -83,9 +87,9 @@ public class SamplingUtils {
             keeperLogWeights.add(logQ);
             keeperObjects.add(object);
           } else {
-            belowLogWeights.add(logQ);
             belowObjects.add(object);
             belowPTotal = LogMath2.add(belowPTotal, logQ);
+            cummBelowLogWeights.add(belowPTotal);
           }
         }
 
@@ -93,20 +97,18 @@ public class SamplingUtils {
           /*
            * All weights are below, resample
            */
-          resultObjects = sampleMultipleLogScale(Doubles.toArray(nonZeroWeights), 
+          resultObjects = sampleMultipleLogScale(Doubles.toArray(cumNonZeroWeights), 
               nonZeroTotal, nonZeroObjects, random, N);
-          resultWeights = Lists.newArrayListWithCapacity(N);
-          Collections.fill(resultWeights, -Math.log(N));
+          resultWeights = Collections.nCopies(N, -Math.log(N));
         } else {
-          if (!belowLogWeights.isEmpty()) {
+          if (!cummBelowLogWeights.isEmpty()) {
             /*
              * Resample the below beta entries
              */
-            Preconditions.checkState(N - belowLogWeights.size() > 0);
-            List<D> belowObjectsResampled = sampleMultipleLogScale(Doubles.toArray(belowLogWeights), 
-                belowPTotal, belowObjects, random, N - belowLogWeights.size());
-            List<Double> belowWeightsResampled = Lists.newArrayListWithCapacity(N);
-            Collections.fill(belowWeightsResampled, -Math.log(nonZeroCount));
+            final int resampleN = N - keeperLogWeights.size();
+            List<D> belowObjectsResampled = sampleMultipleLogScale(Doubles.toArray(cummBelowLogWeights), 
+                belowPTotal, belowObjects, random, resampleN);
+            List<Double> belowWeightsResampled = Collections.nCopies(resampleN, -logAlpha);
             
             keeperObjects.addAll(belowObjectsResampled);
             keeperLogWeights.addAll(belowWeightsResampled);
@@ -146,6 +148,7 @@ public class SamplingUtils {
    */
   public static boolean
       isLogNormalized(final double[] logWeights, final double zeroPrec) {
+    Preconditions.checkArgument(zeroPrec > 0d && zeroPrec < 1e-3);
     double logTotal = Double.NEGATIVE_INFINITY;
     for (int i = 0; i < logWeights.length; i++) {
       logTotal = LogMath2.add(logTotal, logWeights[i]);
@@ -171,9 +174,9 @@ public class SamplingUtils {
 
     while (true) {
       pk = k;
-      while (k < M && logAlpha + sLogWeights[k+1] > 0) {
-        k++;
+      while (k < M && logAlpha + sLogWeights[k] > 0) {
         logTailsum = LogMath2.subtract(logTailsum, sLogWeights[k]);
+        k++;
       }
       logAlpha = Math.log(N-k) - logTailsum;
       if ( pk == k || k == M ) 

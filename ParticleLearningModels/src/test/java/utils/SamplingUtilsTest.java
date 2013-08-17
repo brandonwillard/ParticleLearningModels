@@ -1,13 +1,16 @@
 package utils;
 
 import static org.junit.Assert.*;
+import gov.sandia.cognition.statistics.DataDistribution;
 import gov.sandia.cognition.util.Pair;
 
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Random;
 
 import org.junit.Test;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 public class SamplingUtilsTest {
@@ -52,19 +55,19 @@ public class SamplingUtilsTest {
    */
   @Test
   public void testWaterFillingResample1() {
-    double[] testLogWeights = new double[] { -Math.log(1d/4d),
-                                             -Math.log(1d/4d),
-                                             -Math.log(1d/4d),
-                                             -Math.log(1d/4d)};
+    double[] testLogWeights = new double[] { Math.log(1d/4d),
+                                             Math.log(1d/4d),
+                                             Math.log(1d/4d),
+                                             Math.log(1d/4d)};
     String[] testObjects = new String[] {"o1", "o2", "o3", "o4"};
 
     final Random rng = new Random(123569869l);
     final int N = 2;
-    Pair<List<Double>, List<String>> wfResampleResults = SamplingUtils.waterFillingResample(
+    DataDistribution<String> wfResampleResults = SamplingUtils.waterFillingResample(
         testLogWeights, 0d, Lists.newArrayList(testObjects), rng, N);
 
-    for (Double logWeight : wfResampleResults.getFirst()) {
-      assertEquals(-Math.log(N), logWeight, 1e-7);
+    for (Entry<String, ? extends Number> logWeight : wfResampleResults.asMap().entrySet()) {
+      assertEquals(-Math.log(N), logWeight.getValue().doubleValue(), 1e-7);
     }
   }
 
@@ -82,12 +85,13 @@ public class SamplingUtilsTest {
 
     final Random rng = new Random(123569869l);
     final int N = 2;
-    Pair<List<Double>, List<String>> wfResampleResults = SamplingUtils.waterFillingResample(
+    DataDistribution<String> wfResampleResults = SamplingUtils.waterFillingResample(
         testLogWeights, 0d, Lists.newArrayList(testObjects), rng, N);
 
-    for (Double logWeight : wfResampleResults.getFirst()) {
-      assertEquals(-Math.log(N), logWeight, 1e-7);
-    }
+    assertEquals(0d, wfResampleResults.getMaxValue(), 1e-7);
+    assertEquals("o4", wfResampleResults.getMaxValueKey());
+    final int count = ((MutableDoubleCount)wfResampleResults.asMap().get(wfResampleResults.getMaxValueKey())).count;
+    assertEquals(2, count);
   }
 
   /**
@@ -104,11 +108,11 @@ public class SamplingUtilsTest {
 
     final Random rng = new Random(123569869l);
     final int N = 2;
-    Pair<List<Double>, List<String>> wfResampleResults = SamplingUtils.waterFillingResample(
+    DataDistribution<String> wfResampleResults = SamplingUtils.waterFillingResample(
         testLogWeights, 0d, Lists.newArrayList(testObjects), rng, N);
 
-    for (Double logWeight : wfResampleResults.getFirst()) {
-      assertEquals(-Math.log(N), logWeight, 1e-7);
+    for (Entry<String, ? extends Number> logWeight : wfResampleResults.asMap().entrySet()) {
+      assertEquals(-Math.log(N), logWeight.getValue().doubleValue(), 1e-7);
     }
   }
 
@@ -125,20 +129,24 @@ public class SamplingUtilsTest {
 
     final Random rng = new Random(123569869l);
     final int N = 3;
-    Pair<List<Double>, List<String>> wfResampleResults = SamplingUtils.waterFillingResample(
+    DataDistribution<String> wfResampleResults = SamplingUtils.waterFillingResample(
         testLogWeights, 0d, Lists.newArrayList(testObjects), rng, N);
 
-    assertEquals(Math.log(5d/11d), wfResampleResults.getFirst().get(0), 1e-7);
-    assertEquals("o1", wfResampleResults.getSecond().get(0));
+    assertEquals(Math.log(5d/11d), wfResampleResults.getMaxValue(), 1e-7);
+    assertEquals("o1", wfResampleResults.getMaxValueKey());
 
     final double logAlpha = SamplingUtils.findLogAlpha(testLogWeights, N);
 
-    for (int i = 1; i < wfResampleResults.getFirst().size(); i++) {
-      final double logWeight = wfResampleResults.getFirst().get(i);
-      assertEquals(-logAlpha, logWeight, 1e-7);
+    List<Double> logWeights = Lists.newArrayList();
+    for (Entry<String, ? extends Number> entry: wfResampleResults.asMap().entrySet()) {
+      final double logWeight = entry.getValue().doubleValue();
+      logWeights.add(logWeight);
+      if (!entry.getKey().equals(wfResampleResults.getMaxValueKey())) {
+        assertEquals(-logAlpha, logWeight, 1e-7);
+      }
     }
     
-    assertTrue(SamplingUtils.isLogNormalized(wfResampleResults.getFirst(), 1e-7));
+    assertTrue(SamplingUtils.isLogNormalized(logWeights, 1e-7));
   }
 
   /**
@@ -154,13 +162,15 @@ public class SamplingUtilsTest {
 
     final Random rng = new Random(123569869l);
     final int N = 4;
-    Pair<List<Double>, List<String>> wfResampleResults = SamplingUtils.waterFillingResample(
+    DataDistribution<String> wfResampleResults = SamplingUtils.waterFillingResample(
         testLogWeights, 0d, Lists.newArrayList(testObjects), rng, N);
 
-    assertEquals(Math.log(6d/17d), wfResampleResults.getFirst().get(0), 1e-7);
-    assertEquals("o0", wfResampleResults.getSecond().get(0));
-    assertEquals(Math.log(5d/17d), wfResampleResults.getFirst().get(1), 1e-7);
-    assertEquals("o1", wfResampleResults.getSecond().get(1));
+    assertEquals(Math.log(6d/17d), wfResampleResults.getMaxValue(), 1e-7);
+    assertEquals("o0", wfResampleResults.getMaxValueKey());
+    DataDistribution<String> tmpResults = wfResampleResults.clone(); 
+    tmpResults.decrement(wfResampleResults.getMaxValueKey(), tmpResults.getMaxValue());
+    assertEquals(Math.log(5d/17d), tmpResults.getMaxValue(), 1e-7);
+    assertEquals("o1", tmpResults.getMaxValueKey());
 
     final double logAlpha = SamplingUtils.findLogAlpha(testLogWeights, N);
     
@@ -171,12 +181,18 @@ public class SamplingUtilsTest {
     assertEquals(Math.log(N), pTotal, 1e-7);
     assertEquals(1.734601055388d, logAlpha, 1e-7);
 
-    for (int i = 2; i < wfResampleResults.getFirst().size(); i++) {
-      final double logWeight = wfResampleResults.getFirst().get(i);
-      assertEquals(-logAlpha, logWeight, 1e-7);
+    List<Double> logWeights = Lists.newArrayList();
+    int i = 0;
+    for (Entry<String, ? extends Number> entry: wfResampleResults.asMap().entrySet()) {
+      final double logWeight = entry.getValue().doubleValue();
+      logWeights.add(logWeight);
+      if (i > 1) {
+        assertEquals(-logAlpha, logWeight, 1e-7);
+      }
+      i++;
     }
-    
-    assertTrue(SamplingUtils.isLogNormalized(wfResampleResults.getFirst(), 1e-7));
+
+    assertTrue(SamplingUtils.isLogNormalized(logWeights, 1e-7));
   }
 
 }

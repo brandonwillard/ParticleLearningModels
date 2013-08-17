@@ -1,11 +1,14 @@
 package hmm;
 
 import gov.sandia.cognition.learning.algorithm.hmm.HiddenMarkovModel;
+import gov.sandia.cognition.math.MutableDouble;
 import gov.sandia.cognition.math.matrix.Matrix;
 import gov.sandia.cognition.math.matrix.MatrixFactory;
 import gov.sandia.cognition.math.matrix.Vector;
 import gov.sandia.cognition.math.matrix.VectorFactory;
+import gov.sandia.cognition.statistics.ComputableDistribution;
 import gov.sandia.cognition.statistics.DataDistribution;
+import gov.sandia.cognition.statistics.DiscreteSamplingUtil;
 import gov.sandia.cognition.statistics.bayesian.AbstractParticleFilter;
 import gov.sandia.cognition.statistics.distribution.DefaultDataDistribution;
 import gov.sandia.cognition.statistics.distribution.MultivariateGaussian;
@@ -13,16 +16,24 @@ import gov.sandia.cognition.statistics.distribution.MultivariateStudentTDistribu
 import gov.sandia.cognition.statistics.distribution.NormalInverseWishartDistribution;
 import gov.sandia.cognition.util.AbstractCloneableSerializable;
 import gov.sandia.cognition.util.ObjectUtil;
+import gov.sandia.cognition.util.Pair;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Random;
 
+import org.apache.log4j.Logger;
+
+import utils.CountedDataDistribution;
 import utils.LogMath2;
+import utils.MutableDoubleCount;
 import utils.SamplingUtils;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.common.primitives.Doubles;
 
 /**
  * A Particle Learning filter for a multivariate Gaussian Dirichlet Process.
@@ -30,11 +41,14 @@ import com.google.common.collect.Lists;
  * @author bwillard
  * 
  */
-public class CategoricalHMMPLFilter extends AbstractParticleFilter<Double, HMMTransitionState> {
+public class CategoricalHMMPLFilter extends AbstractParticleFilter<Double, HMMTransitionState<Double>> {
+
+  final Logger log = Logger
+      .getLogger(CategoricalHMMPLFilter.class);
 
   public class CategoricalHMMPLUpdater extends AbstractCloneableSerializable
       implements
-        Updater<Double, HMMTransitionState> {
+        Updater<Double, HMMTransitionState<Double>> {
 
     final private HiddenMarkovModel<Double> hmm; 
     final private Random rng;
@@ -44,47 +58,39 @@ public class CategoricalHMMPLFilter extends AbstractParticleFilter<Double, HMMTr
       this.rng = rng;
     }
 
-    /**
-     * In the case of a Particle Learning model, such as this, the prior predictive log likelihood
-     * is used.
-     */
     @Override
-    public double computeLogLikelihood(HMMTransitionState particle, Double observation) {
-
-      /*
-       * Evaluate the log likelihood for a new component.
-       * TODO
-       */
-
-      /*
-       * Now, evaluate log likelihood for the current mixture components
-       * TODO
-       */
-
-      return 0d;
+    public double computeLogLikelihood(HMMTransitionState<Double> particle, Double observation) {
+      return Double.NaN;
     }
 
+    /**
+     * Naive initialization by sampling from the prior.
+     * TODO FIXME: We already know this ruins water-filling, so fix it.
+     */
     @Override
-    public DataDistribution<HMMTransitionState> createInitialParticles(int numParticles) {
+    public DataDistribution<HMMTransitionState<Double>> createInitialParticles(int numParticles) {
 
-      /**
-       * TODO how to initialize?  FFBS?
-       */
-      final DefaultDataDistribution<HMMTransitionState> initialParticles =
-          new DefaultDataDistribution<>(numParticles);
+      final CountedDataDistribution<HMMTransitionState<Double>> initialParticles =
+          new CountedDataDistribution<>(numParticles, true);
       for (int i = 0; i < numParticles; i++) {
-        final HMMTransitionState particleMvgDPDist =
-            new HMMTransitionState(this.hmm, null); 
-        initialParticles.increment(particleMvgDPDist);
+        final int sampledState = DiscreteSamplingUtil.sampleIndexFromProbabilities(
+            this.rng, this.hmm.getInitialProbability());
+        final HMMTransitionState<Double> particle =
+            new HMMTransitionState<Double>(this.hmm, sampledState); 
+
+        //particle.setStateLogWeight(-Math.log(numParticles)); 
+        /*
+         * Hack for water-filling weights
+         */
+        final double hackLogWeight = -Math.log(i+1d);
+        particle.setStateLogWeight(hackLogWeight); 
+        initialParticles.increment(particle, hackLogWeight);
       }
       return initialParticles;
     }
 
-    /**
-     * In this model/filter, there's no need for blind samples from the predictive distribution.
-     */
     @Override
-    public HMMTransitionState update(HMMTransitionState previousParameter) {
+    public HMMTransitionState<Double> update(HMMTransitionState<Double> previousParameter) {
       return previousParameter;
     }
 
@@ -96,42 +102,61 @@ public class CategoricalHMMPLFilter extends AbstractParticleFilter<Double, HMMTr
   }
 
   @Override
-  public void update(DataDistribution<HMMTransitionState> target, Double data) {
-    Preconditions.checkState(target.getDomainSize() == this.numParticles);
+  public void update(DataDistribution<HMMTransitionState<Double>> target, Double data) {
 
     /*
      * Compute prior predictive log likelihoods for resampling.
      */
     double particleTotalLogLikelihood = Double.NEGATIVE_INFINITY;
-    final double[] cumulativeLogLikelihoods = new double[this.numParticles];
-    final List<HMMTransitionState> particleSupport = Lists.newArrayList(target.getDomain());
-    int j = 0;
-    for (final HMMTransitionState particle : particleSupport) {
-      final double logLikelihood = this.updater.computeLogLikelihood(particle, data);
-      cumulativeLogLikelihoods[j] =
-          j > 0 ? LogMath2.add(cumulativeLogLikelihoods[j - 1], logLikelihood) : logLikelihood;
-      particleTotalLogLikelihood = LogMath2.add(particleTotalLogLikelihood, logLikelihood);
-      j++;
+    final List<Double> logLikelihoods = Lists.newArrayList();
+    final List<HMMTransitionState<Double>> particleSupport = Lists.newArrayList();
+    for (final HMMTransitionState<Double> particle : target.getDomain()) {
+      final HiddenMarkovModel<Double> hmm = particle.getHmm();
+      
+      final int particleCount = ((CountedDataDistribution)target).getCount(particle);
+      int i = 0;
+
+      final double particlePriorLogLik = target.getLogFraction(particle);
+      for(ComputableDistribution<Double> f : particle.getHmm().getEmissionFunctions()) {
+        final double transStateLogLik = f.getProbabilityFunction().logEvaluate(data)
+            + particlePriorLogLik 
+            + hmm.getTransitionProbability().getElement(i, particle.getState());
+
+        logLikelihoods.addAll(Collections.nCopies(particleCount, transStateLogLik));
+        //particleSupport.addAll(Collections.nCopies(particleCount, new HMMTransitionState<Double>(particle, i)));
+        /*
+         * Just to be safe...
+         */
+        for (int k = 0; k < particleCount; k++) { 
+          particleSupport.add(new HMMTransitionState<Double>(particle, i));
+        }
+
+        particleTotalLogLikelihood = LogMath2.add(particleTotalLogLikelihood, transStateLogLik + particleCount);
+        i++;
+      }
     }
 
-    final List<HMMTransitionState> resampledParticles =
-        SamplingUtils.sampleMultipleLogScale(cumulativeLogLikelihoods, particleTotalLogLikelihood,
-            particleSupport, random, this.numParticles);
+    /*
+     * Water-filling resample, for a smoothed predictive set
+     */
+    final CountedDataDistribution<HMMTransitionState<Double>> resampledParticles =
+        SamplingUtils.waterFillingResample(Doubles.toArray(logLikelihoods), particleTotalLogLikelihood, 
+            particleSupport, this.random, this.numParticles);
 
     /*
      * Propagate
      */
-    final DataDistribution<HMMTransitionState> updatedDist = new DefaultDataDistribution<>();
-    for (final HMMTransitionState particle : resampledParticles) {
-
-      /*
-       * First, sample a mixture component index
-       * TODO
-       */
+    final CountedDataDistribution<HMMTransitionState<Double>> updatedDist = new CountedDataDistribution<>(true);
+    for (final Entry<HMMTransitionState<Double>, MutableDouble> entry: resampledParticles.asMap().entrySet()) {
+      final HMMTransitionState<Double> updatedEntry = entry.getKey().clone();
+      updatedEntry.setStateLogWeight(entry.getValue().doubleValue());
+      updatedDist.set(updatedEntry, entry.getValue().doubleValue(), ((MutableDoubleCount)entry.getValue()).count);
     }
 
-
+    Preconditions.checkState(updatedDist.getTotalCount() == this.numParticles);
     target.clear();
     target.incrementAll(updatedDist);
+    Preconditions.checkState(((CountedDataDistribution)target).getTotalCount() == this.numParticles);
   }
+
 }

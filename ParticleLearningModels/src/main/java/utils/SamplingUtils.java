@@ -6,15 +6,19 @@ import gov.sandia.cognition.statistics.DataDistribution;
 import gov.sandia.cognition.statistics.DiscreteSamplingUtil;
 import gov.sandia.cognition.statistics.bayesian.BayesianUtil;
 import gov.sandia.cognition.statistics.distribution.CategoricalDistribution;
+import gov.sandia.cognition.statistics.distribution.DefaultDataDistribution;
 import gov.sandia.cognition.util.DefaultPair;
 import gov.sandia.cognition.util.DefaultWeightedValue;
 import gov.sandia.cognition.util.Pair;
 import gov.sandia.cognition.util.WeightedValue;
+import hmm.HMMTransitionState;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+
+import org.apache.log4j.Logger;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
@@ -23,8 +27,10 @@ import com.google.common.primitives.Doubles;
 
 public class SamplingUtils {
   
+  final static Logger log = Logger
+      .getLogger(SamplingUtils.class);
 
-  public static <D> Pair<List<Double>, List<D>> waterFillingResample(final double[] logWeights, 
+  public static <D> CountedDataDistribution<D> waterFillingResample(final double[] logWeights, 
     final double logWeightSum, final List<D> domain, final Random random, final int N) {
     Preconditions.checkArgument(domain.size() == logWeights.length);
     Preconditions.checkArgument(logWeights.length >= N);
@@ -35,8 +41,8 @@ public class SamplingUtils {
     final List<D> nonZeroObjects = Lists.newArrayList();
     double nonZeroTotal = Double.NEGATIVE_INFINITY;
     for (int i = 0; i < nLogWeights.size(); i++) {
-      final double logWeight = nLogWeights.get(i);
-      nLogWeights.set(i, logWeight - logWeightSum);
+      final double logWeight = nLogWeights.get(i) - logWeightSum;
+      nLogWeights.set(i, logWeight);
       if (Double.compare(logWeight, Double.NEGATIVE_INFINITY) > 0d) {
         nonZeroObjects.add(domain.get(i));
         nonZeroWeights.add(logWeight);
@@ -54,6 +60,8 @@ public class SamplingUtils {
        */
       resultWeights = nonZeroWeights;
       resultObjects = nonZeroObjects;
+      log.warn("removed zero weights");
+
     } else if (nonZeroCount < N) {
       /*
        * In this case, we need to just plain 'ol resample 
@@ -61,6 +69,7 @@ public class SamplingUtils {
       resultObjects = sampleMultipleLogScale(Doubles.toArray(cumNonZeroWeights), 
           nonZeroTotal, nonZeroObjects, random, N);
       resultWeights = Collections.nCopies(N, -Math.log(N));
+      log.warn("non-zero less than N");
     } else {
       final double logAlpha = findLogAlpha(Doubles.toArray(nonZeroWeights), N);
       if (logAlpha == 0) {
@@ -70,6 +79,7 @@ public class SamplingUtils {
         resultObjects = sampleMultipleLogScale(Doubles.toArray(cumNonZeroWeights), 
             nonZeroTotal, nonZeroObjects, random, N);
         resultWeights = Collections.nCopies(N, -Math.log(N));
+        log.warn("logAlpha = 0");
       } else {
 
         List<Double> logPValues = Lists.newArrayListWithCapacity(nonZeroCount);
@@ -100,7 +110,9 @@ public class SamplingUtils {
           resultObjects = sampleMultipleLogScale(Doubles.toArray(cumNonZeroWeights), 
               nonZeroTotal, nonZeroObjects, random, N);
           resultWeights = Collections.nCopies(N, -Math.log(N));
+          log.warn("all below logAlpha");
         } else {
+          log.debug("water-filling applied!");
           if (!cummBelowLogWeights.isEmpty()) {
             /*
              * Resample the below beta entries
@@ -124,7 +136,11 @@ public class SamplingUtils {
     
     Preconditions.checkState(resultWeights.size() == resultObjects.size()
         && resultWeights.size() == N);
-    return DefaultPair.create(resultWeights, resultObjects);
+    CountedDataDistribution<D> result = new CountedDataDistribution<D>(N, true);
+    for (int i = 0; i < N; i++) {
+      result.increment(resultObjects.get(i), resultWeights.get(i));
+    }
+    return result;
   }
 
   /**
@@ -175,13 +191,16 @@ public class SamplingUtils {
     while (true) {
       pk = k;
       while (k < M && logAlpha + sLogWeights[k] > 0) {
-        logTailsum = LogMath2.subtract(logTailsum, sLogWeights[k]);
+        final double thisLogWeight = sLogWeights[k];
+        logTailsum = LogMath2.subtract(logTailsum, thisLogWeight);
         k++;
       }
       logAlpha = Math.log(N-k) - logTailsum;
       if ( pk == k || k == M ) 
         break;
     }
+    
+    Preconditions.checkState(!Double.isNaN(logAlpha));
   
     return logAlpha;
   }

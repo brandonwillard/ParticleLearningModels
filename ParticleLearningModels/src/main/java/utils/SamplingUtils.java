@@ -1,7 +1,10 @@
 package utils;
 
 import gov.sandia.cognition.collection.ArrayUtil;
+import gov.sandia.cognition.collection.CollectionUtil;
+import gov.sandia.cognition.learning.algorithm.hmm.HiddenMarkovModel;
 import gov.sandia.cognition.math.LogMath;
+import gov.sandia.cognition.math.matrix.Vector;
 import gov.sandia.cognition.statistics.DataDistribution;
 import gov.sandia.cognition.statistics.DiscreteSamplingUtil;
 import gov.sandia.cognition.statistics.bayesian.BayesianUtil;
@@ -29,6 +32,35 @@ public class SamplingUtils {
   
   final static Logger log = Logger
       .getLogger(SamplingUtils.class);
+
+  public static <ObservationType> Pair<List<ObservationType>, List<Integer>> sampleWithStates(
+      HiddenMarkovModel<ObservationType> hmm, Random random, int numSamples) {
+  
+    List<ObservationType> samples =
+        Lists.newArrayListWithCapacity(numSamples);
+    List<Integer> states =
+        Lists.newArrayListWithCapacity(numSamples);
+    Vector p = hmm.getInitialProbability();
+    int state = -1;
+    for (int n = 0; n < numSamples; n++) {
+      double value = random.nextDouble();
+      state = -1;
+      while (value > 0.0) {
+        state++;
+        value -= p.getElement(state);
+      }
+  
+      ObservationType sample =
+          CollectionUtil.getElement(hmm.getEmissionFunctions(),
+              state).sample(random);
+      states.add(new Integer(state));
+      samples.add(sample);
+      p = hmm.getTransitionProbability().getColumn(state);
+    }
+  
+    Pair<List<ObservationType>, List<Integer>> result = DefaultPair.create(samples, states);
+    return result;
+  }
 
   public static <D> CountedDataDistribution<D> waterFillingResample(final double[] logWeights, 
     final double logWeightSum, final List<D> domain, final Random random, final int N) {

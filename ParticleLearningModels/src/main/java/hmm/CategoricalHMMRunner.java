@@ -2,16 +2,17 @@ package hmm;
 
 import java.math.RoundingMode;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import utils.CountedDataDistribution;
 import utils.LogMath2;
+import utils.SamplingUtils;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.math.DoubleMath;
 
-import gov.sandia.cognition.collection.CollectionUtil;
 import gov.sandia.cognition.learning.algorithm.hmm.HiddenMarkovModel;
 import gov.sandia.cognition.math.MutableDouble;
 import gov.sandia.cognition.math.RingAccumulator;
@@ -21,7 +22,6 @@ import gov.sandia.cognition.math.matrix.Vector;
 import gov.sandia.cognition.math.matrix.VectorFactory;
 import gov.sandia.cognition.statistics.DataDistribution;
 import gov.sandia.cognition.statistics.distribution.DefaultDataDistribution;
-import gov.sandia.cognition.util.DefaultPair;
 import gov.sandia.cognition.util.Pair;
 import gov.sandia.cognition.util.WeightedValue;
 
@@ -44,8 +44,8 @@ public class CategoricalHMMRunner {
         );
     
     final Random rng = new Random();//123452388l);
-    final int T = 50;
-    Pair<List<Double>, List<Integer>> sample = sampleWithStates(trueHmm, rng, T);
+    final int T = 3;
+    Pair<List<Double>, List<Integer>> sample = SamplingUtils.sampleWithStates(trueHmm, rng, T);
     
     HiddenMarkovModel<Double> hmm = new HiddenMarkovModel<Double>(
         VectorFactory.getDefault().copyArray(new double[] {0.5, 0.5}),
@@ -54,17 +54,20 @@ public class CategoricalHMMRunner {
         );
 
     CategoricalHMMPLFilter filter = new CategoricalHMMPLFilter(hmm, rng);
-    final int N = 1000;
+    final int N = 100000;
     filter.setNumParticles(N);
 
     CountedDataDistribution<HMMTransitionState<Double>> distribution = 
         (CountedDataDistribution<HMMTransitionState<Double>>) filter.createInitialLearnedObject();
     
-    List<Vector> baumWelchResults = hmm.stateBeliefs(sample.getFirst());
+    List<Vector> forwardResults = hmm.stateBeliefs(sample.getFirst());
     List<Integer> viterbiResults = hmm.viterbi(sample.getFirst());
     
     RingAccumulator<MutableDouble> viterbiRate = new RingAccumulator<MutableDouble>();
     RingAccumulator<MutableDouble> pfRunningRate = new RingAccumulator<MutableDouble>();
+    /*
+     * Recurse through the particle filter
+     */
     for (int i = 0; i < T; i++) {
       final Double y = sample.getFirst().get(i);
       filter.update(distribution, y);
@@ -74,11 +77,26 @@ public class CategoricalHMMRunner {
           (x == viterbiResults.get(i) ? 1d : 0d)
           ));
       RingAccumulator<MutableDouble> pfAtTRate = new RingAccumulator<MutableDouble>();
+      CountedDataDistribution<Integer> stateSums = new CountedDataDistribution<>(true);
       for (HMMTransitionState<Double> state : distribution.getDomain()) {
+        stateSums.adjust(state.getState(), distribution.getLogFraction(state), distribution.getCount(state));
+
         final double err = (x == state.getState()) ? distribution.getFraction(state) : 0d;
         pfAtTRate.accumulate(new MutableDouble(err));
       }
       pfRunningRate.accumulate(new MutableDouble(pfAtTRate.getSum()));
+
+      /*
+       * Check marginal state probabilities
+       */
+      Preconditions.checkState(stateSums.getDomainSize() <= hmm.getNumStates());
+      Vector stateProbDiffs = VectorFactory.getDefault().createVector(hmm.getNumStates());
+      for (int j = 0; j < hmm.getNumStates(); j++) {
+        stateProbDiffs.setElement(j, forwardResults.get(i).getElement(j) - 
+            stateSums.getFraction(j));
+      }
+      System.out.println("stateProbDiffs=" + stateProbDiffs);
+
     }
     System.out.println("viterbiRate:" + viterbiRate.getMean());
     System.out.println("pfRunningRate:" + pfRunningRate.getMean());
@@ -134,35 +152,6 @@ public class CategoricalHMMRunner {
     }
 
     System.out.println("pfRate2:" + pfRate2.getMean());
-  }
-
-  public static <ObservationType> Pair<List<ObservationType>, List<Integer>> sampleWithStates(
-      HiddenMarkovModel<ObservationType> hmm, Random random, int numSamples) {
-
-    List<ObservationType> samples =
-        Lists.newArrayListWithCapacity(numSamples);
-    List<Integer> states =
-        Lists.newArrayListWithCapacity(numSamples);
-    Vector p = hmm.getInitialProbability();
-    int state = -1;
-    for (int n = 0; n < numSamples; n++) {
-      double value = random.nextDouble();
-      state = -1;
-      while (value > 0.0) {
-        state++;
-        value -= p.getElement(state);
-      }
-
-      ObservationType sample =
-          CollectionUtil.getElement(hmm.getEmissionFunctions(),
-              state).sample(random);
-      states.add(new Integer(state));
-      samples.add(sample);
-      p = hmm.getTransitionProbability().getColumn(state);
-    }
-
-    Pair<List<ObservationType>, List<Integer>> result = DefaultPair.create(samples, states);
-    return result;
   }
 
 }

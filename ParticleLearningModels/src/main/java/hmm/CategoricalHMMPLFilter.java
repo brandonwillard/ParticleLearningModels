@@ -78,13 +78,9 @@ public class CategoricalHMMPLFilter extends AbstractParticleFilter<Double, HMMTr
         final HMMTransitionState<Double> particle =
             new HMMTransitionState<Double>(this.hmm, sampledState); 
 
-        //particle.setStateLogWeight(-Math.log(numParticles)); 
-        /*
-         * Hack for water-filling weights
-         */
-        final double hackLogWeight = -Math.log(i+1d);
-        particle.setStateLogWeight(hackLogWeight); 
-        initialParticles.increment(particle, hackLogWeight);
+        final double logWeight = -Math.log(numParticles); //-Math.log(i+1d);
+        particle.setStateLogWeight(logWeight); 
+        initialParticles.increment(particle, logWeight);
       }
       return initialParticles;
     }

@@ -10,6 +10,7 @@ import gov.sandia.cognition.statistics.DiscreteSamplingUtil;
 import gov.sandia.cognition.statistics.bayesian.BayesianUtil;
 import gov.sandia.cognition.statistics.distribution.CategoricalDistribution;
 import gov.sandia.cognition.statistics.distribution.DefaultDataDistribution;
+import gov.sandia.cognition.statistics.distribution.ExponentialDistribution;
 import gov.sandia.cognition.util.DefaultPair;
 import gov.sandia.cognition.util.DefaultWeightedValue;
 import gov.sandia.cognition.util.Pair;
@@ -17,15 +18,19 @@ import gov.sandia.cognition.util.WeightedValue;
 import hmm.HMMTransitionState;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
+import java.util.TreeMap;
 
 import org.apache.log4j.Logger;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.primitives.Doubles;
 
 public class SamplingUtils {
@@ -86,6 +91,7 @@ public class SamplingUtils {
     List<Double> resultWeights;
     List<D> resultObjects;
     final int nonZeroCount = nonZeroWeights.size();
+    Preconditions.checkState(nonZeroCount >= N);
     if (nonZeroCount == N) {
       /*
        * Do nothing but remove the zero weights
@@ -94,14 +100,14 @@ public class SamplingUtils {
       resultObjects = nonZeroObjects;
       log.warn("removed zero weights");
 
-    } else if (nonZeroCount < N) {
-      /*
-       * In this case, we need to just plain 'ol resample 
-       */
-      resultObjects = sampleMultipleLogScale(Doubles.toArray(cumNonZeroWeights), 
-          nonZeroTotal, nonZeroObjects, random, N);
-      resultWeights = Collections.nCopies(N, -Math.log(N));
-      log.warn("non-zero less than N");
+//    } else if (nonZeroCount < N) {
+//      /*
+//       * In this case, we need to just plain 'ol resample 
+//       */
+//      resultObjects = sampleMultipleLogScale(Doubles.toArray(cumNonZeroWeights), 
+//          nonZeroTotal, nonZeroObjects, random, N, false);
+//      resultWeights = Collections.nCopies(N, -Math.log(N));
+//      log.warn("non-zero less than N");
     } else {
       final double logAlpha = findLogAlpha(Doubles.toArray(nonZeroWeights), N);
       if (logAlpha == 0) {
@@ -109,7 +115,7 @@ public class SamplingUtils {
          * Plain 'ol resample here, too 
          */
         resultObjects = sampleMultipleLogScale(Doubles.toArray(cumNonZeroWeights), 
-            nonZeroTotal, nonZeroObjects, random, N);
+            nonZeroTotal, nonZeroObjects, random, N, false);
         resultWeights = Collections.nCopies(N, -Math.log(N));
         log.warn("logAlpha = 0");
       } else {
@@ -140,7 +146,7 @@ public class SamplingUtils {
            * All weights are below, resample
            */
           resultObjects = sampleMultipleLogScale(Doubles.toArray(cumNonZeroWeights), 
-              nonZeroTotal, nonZeroObjects, random, N);
+              nonZeroTotal, nonZeroObjects, random, N, false);
           resultWeights = Collections.nCopies(N, -Math.log(N));
           log.warn("all below logAlpha");
         } else {
@@ -151,7 +157,7 @@ public class SamplingUtils {
              */
             final int resampleN = N - keeperLogWeights.size();
             List<D> belowObjectsResampled = sampleMultipleLogScale(Doubles.toArray(cummBelowLogWeights), 
-                belowPTotal, belowObjects, random, resampleN);
+                belowPTotal, belowObjects, random, resampleN, false);
             List<Double> belowWeightsResampled = Collections.nCopies(resampleN, -logAlpha);
             
             keeperObjects.addAll(belowObjectsResampled);
@@ -251,18 +257,43 @@ public class SamplingUtils {
   }
 
   public static <D> List<D> sampleMultipleLogScale(final double[] cumulativeLogWeights,
-      final double logWeightSum, final List<D> domain, final Random random, final int numSamples) {
+      final double logWeightSum, final List<D> domain, final Random random, final int numSamples,
+      final boolean replace) {
+    Preconditions.checkArgument(domain.size() == cumulativeLogWeights.length);
 
-    int index;
     final List<D> samples = Lists.newArrayListWithCapacity(numSamples);
-    for (int n = 0; n < numSamples; n++) {
-      final double p = logWeightSum + Math.log(random.nextDouble());
-      index = Arrays.binarySearch(cumulativeLogWeights, p);
-      if (index < 0) {
-        final int insertionPoint = -index - 1;
-        index = insertionPoint;
+    if (!replace) {
+      Preconditions.checkArgument(domain.size() >= numSamples);
+      
+      if (domain.size() == numSamples) {
+        return domain;
       }
-      samples.add(domain.get(index));
+      
+      TreeMap<Double, D> tMap = Maps.newTreeMap();
+      double[] key = new double[cumulativeLogWeights.length];
+      key[0] = Math.log(random.nextDouble())/(cumulativeLogWeights[0] - logWeightSum);
+      for (int i = 1; i < cumulativeLogWeights.length; i++) {
+        final double logWeight = LogMath2.subtract(cumulativeLogWeights[i],
+            cumulativeLogWeights[i-1]) - logWeightSum;
+        key[i] = Math.log(random.nextDouble())/Math.exp(logWeight);
+        tMap.put(key[i], domain.get(i));
+      }
+      
+      while(samples.size() < numSamples) {
+        samples.add(tMap.pollLastEntry().getValue());
+      }
+      
+    } else {
+      int index;
+      for (int n = 0; n < numSamples; n++) {
+        final double p = logWeightSum + Math.log(random.nextDouble());
+        index = Arrays.binarySearch(cumulativeLogWeights, p);
+        if (index < 0) {
+          final int insertionPoint = -index - 1;
+          index = insertionPoint;
+        }
+        samples.add(domain.get(index));
+      }
     }
     return samples;
 

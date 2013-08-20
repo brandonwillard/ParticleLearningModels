@@ -15,13 +15,18 @@ import gov.sandia.cognition.statistics.distribution.MultivariateGaussian;
 import gov.sandia.cognition.statistics.distribution.MultivariateStudentTDistribution;
 import gov.sandia.cognition.statistics.distribution.NormalInverseWishartDistribution;
 import gov.sandia.cognition.util.AbstractCloneableSerializable;
+import gov.sandia.cognition.util.DefaultWeightedValue;
+import gov.sandia.cognition.util.DefaultWeightedValue.WeightComparator;
 import gov.sandia.cognition.util.ObjectUtil;
 import gov.sandia.cognition.util.Pair;
+import gov.sandia.cognition.util.WeightedValue;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.PriorityQueue;
 import java.util.Random;
 
 import org.apache.log4j.Logger;
@@ -62,14 +67,53 @@ public class CategoricalHMMPLFilter extends AbstractParticleFilter<Double, HMMTr
     public double computeLogLikelihood(HMMTransitionState<Double> particle, Double observation) {
       return Double.NaN;
     }
+    
+    /**
+     * TODO
+     * Expands the forward probabilities until numParticles
+     * paths are reached, then returns the resulting density.
+     */
+    public DataDistribution<HMMTransitionState<Double>> expandForwardProbabilities(List<Double> observations, 
+        int numParticles) {
+      List<Vector> forwardProbabilities = this.hmm.stateBeliefs(observations);
+      final CountedDataDistribution<HMMTransitionState<Double>> initialParticles =
+          new CountedDataDistribution<>(numParticles, true);
+      
+      return null;
+    }
 
     /**
-     * Naive initialization by sampling from the prior.
-     * TODO FIXME: We already know this ruins water-filling, so fix it.
+     * TODO
+     * Constructs an initial particle set by spreading the
+     * prior density uniquely (when possible).
      */
+    public DataDistribution<HMMTransitionState<Double>> spreadDistribution(int numParticles) {
+
+      PriorityQueue<WeightedValue<Integer>> initialStates = new PriorityQueue<WeightedValue<Integer>>(
+          this.hmm.getNumStates(),
+          new Comparator<WeightedValue<Integer>> () {
+            @Override
+            public int compare(WeightedValue<Integer> o1,
+              WeightedValue<Integer> o2) {
+              return Double.compare(o1.getWeight(), o2.getWeight());
+            }
+          });
+
+      for (int i = 0; i < this.hmm.getNumStates(); i++) {
+        final double stateProb = this.hmm.getInitialProbability().getElement(i);
+        initialStates.add(DefaultWeightedValue.create(i, stateProb));
+      }
+
+
+      final CountedDataDistribution<HMMTransitionState<Double>> initialParticles =
+          new CountedDataDistribution<>(numParticles, true);
+          
+      return null;
+
+    }
+
     @Override
     public DataDistribution<HMMTransitionState<Double>> createInitialParticles(int numParticles) {
-
       final CountedDataDistribution<HMMTransitionState<Double>> initialParticles =
           new CountedDataDistribution<>(numParticles, true);
       for (int i = 0; i < numParticles; i++) {
@@ -119,13 +163,13 @@ public class CategoricalHMMPLFilter extends AbstractParticleFilter<Double, HMMTr
             + hmm.getTransitionProbability().getElement(i, particle.getState());
 
         logLikelihoods.addAll(Collections.nCopies(particleCount, transStateLogLik));
-        //particleSupport.addAll(Collections.nCopies(particleCount, new HMMTransitionState<Double>(particle, i)));
-        /*
-         * Just to be safe...
-         */
-        for (int k = 0; k < particleCount; k++) { 
-          particleSupport.add(new HMMTransitionState<Double>(particle, i));
-        }
+        particleSupport.addAll(Collections.nCopies(particleCount, new HMMTransitionState<Double>(particle, i)));
+//        /*
+//         * Just to be safe...
+//         */
+//        for (int k = 0; k < particleCount; k++) { 
+//          particleSupport.add(new HMMTransitionState<Double>(particle, i));
+//        }
 
         particleTotalLogLikelihood = LogMath2.add(particleTotalLogLikelihood, transStateLogLik + particleCount);
         i++;

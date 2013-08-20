@@ -590,8 +590,19 @@ public class CountedDataDistribution<KeyType> extends
     } else {
       this.total += delta;
     }
-
+    
     return newValue;
+  }
+  
+  public double[] getNormalizedWeights() {
+    double[] weights = new double[this.getDomainSize()];
+    int i = 0;
+    for (MutableDouble md : this.map.values()) {
+      MutableDoubleCount mdc = (MutableDoubleCount)md;
+      weights[i] = mdc.value - this.total;
+      i++;
+    }
+    return weights;
   }
 
   @Override
@@ -619,12 +630,14 @@ public class CountedDataDistribution<KeyType> extends
   @Override
   public KeyType sample(Random random) {
     if (this.isLogScale) {
-      double w = random.nextDouble();
+      //double w = random.nextDouble();
+      double w = Math.log(random.nextDouble());
       for (final ScalarMap.Entry<KeyType> entry : this.entrySet()) {
-        w -= this.getFraction(entry.getKey());
-        if (w <= 0d) {
+        final double thisLogWeight = this.getLogFraction(entry.getKey());
+        if (w <= thisLogWeight) { 
           return entry.getKey();
         }
+        w = LogMath2.subtract(w, thisLogWeight);
       }
       return null;
     } else {

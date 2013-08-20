@@ -141,7 +141,7 @@ public class PolyaGammaLogitPLFilter
 
     final List<PolyaGammaLogitDistribution> resampledParticles =
         SamplingUtils.sampleMultipleLogScale(cumulativeLogLikelihoods, particleTotalLogLikelihood,
-            particleSupport, random, this.numParticles);
+            particleSupport, random, this.numParticles, false);
 
     /*
      * Propagate

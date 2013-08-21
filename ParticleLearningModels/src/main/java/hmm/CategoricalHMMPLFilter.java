@@ -160,7 +160,7 @@ public class CategoricalHMMPLFilter extends AbstractParticleFilter<Double, HMMTr
       for(ComputableDistribution<Double> f : particle.getHmm().getEmissionFunctions()) {
         final double transStateLogLik = f.getProbabilityFunction().logEvaluate(data)
             + particlePriorLogLik 
-            + hmm.getTransitionProbability().getElement(i, particle.getState());
+            + Math.log(hmm.getTransitionProbability().getElement(i, particle.getState()));
 
         logLikelihoods.addAll(Collections.nCopies(particleCount, transStateLogLik));
         particleSupport.addAll(Collections.nCopies(particleCount, new HMMTransitionState<Double>(particle, i)));

@@ -46,13 +46,13 @@ public class CategoricalHMMPLFilterTest {
     final Random rng = new Random();//123452388l);
 
     final int S = 2;
-    DefaultDataDistribution<Double> s1Likelihood = new DefaultDataDistribution<Double>();
-    s1Likelihood.increment(0d, 1d/3d);
-    s1Likelihood.increment(1d, 1d/3d);
-    s1Likelihood.increment(2d, 1d/3d);
-    s1Likelihood.increment(3d, 1d/3d);
+    DefaultDataDistribution<Integer> s1Likelihood = new DefaultDataDistribution<Integer>();
+    s1Likelihood.increment(0, 1d/3d);
+    s1Likelihood.increment(1, 1d/3d);
+    s1Likelihood.increment(2, 1d/3d);
+    s1Likelihood.increment(3, 1d/3d);
 
-    HiddenMarkovModel<Double> trueHmm = HiddenMarkovModel.createRandom(S, s1Likelihood, rng);
+    HiddenMarkovModel<Integer> trueHmm = HiddenMarkovModel.createRandom(S, s1Likelihood, rng);
 
 //    DefaultDataDistribution<Double> s2Likelihood = new DefaultDataDistribution<Double>();
 //    s2Likelihood.increment(0d, 1d/3d);
@@ -79,9 +79,9 @@ public class CategoricalHMMPLFilterTest {
 //        emissionFunctions);
     
     final int T = 3;
-    Pair<List<Double>, List<Integer>> sample = SamplingUtils.sampleWithStates(trueHmm, rng, T);
+    Pair<List<Integer>, List<Integer>> sample = SamplingUtils.sampleWithStates(trueHmm, rng, T);
 
-    HiddenMarkovModel<Double> hmm = trueHmm.clone();
+    HiddenMarkovModel<Integer> hmm = trueHmm.clone();
 //    HiddenMarkovModel<Double> hmm = new HiddenMarkovModel<Double>(
 //        VectorFactory.getDefault().copyArray(new double[] {1d/4d, 1d/4d, 2d/4d}),
 //        MatrixFactory.getDefault().copyArray(new double[][] {
@@ -107,18 +107,19 @@ public class CategoricalHMMPLFilterTest {
     for (int k = 0; k < numIterations; k++) {
       filter.setNumParticles(N);
   
-      CountedDataDistribution<HMMTransitionState<Double>> distribution = 
-          (CountedDataDistribution<HMMTransitionState<Double>>) filter.createInitialLearnedObject();
+      CountedDataDistribution<HMMTransitionState<Integer>> distribution = 
+          (CountedDataDistribution<HMMTransitionState<Integer>>) filter.createInitialLearnedObject();
       
       /*
        * Recurse through the particle filter
        */
       for (int i = 0; i < T; i++) {
-        final Double y = sample.getFirst().get(i);
-        filter.update(distribution, y);
+        final Integer y = sample.getFirst().get(i);
+        final ObservedState obsState = new ObservedState(i, y);
+        filter.update(distribution, obsState);
   
         CountedDataDistribution<Integer> stateSums = new CountedDataDistribution<>(true);
-        for (HMMTransitionState<Double> state : distribution.getDomain()) {
+        for (HMMTransitionState<Integer> state : distribution.getDomain()) {
           stateSums.adjust(state.getState(), distribution.getLogFraction(state), distribution.getCount(state));
         }
   
@@ -228,16 +229,16 @@ public class CategoricalHMMPLFilterTest {
     final Random rng = new Random();//123452388l);
 
     final int S = 2;
-    DefaultDataDistribution<Double> s1Likelihood = new DefaultDataDistribution<Double>();
-    s1Likelihood.increment(0d, 1d/2d);
-    s1Likelihood.increment(1d, 1d/2d);
+    DefaultDataDistribution<Integer> s1Likelihood = new DefaultDataDistribution<Integer>();
+    s1Likelihood.increment(0, 1d/2d);
+    s1Likelihood.increment(1, 1d/2d);
 
-    HiddenMarkovModel<Double> trueHmm = HiddenMarkovModel.createRandom(S, s1Likelihood, rng);
+    HiddenMarkovModel<Integer> trueHmm = HiddenMarkovModel.createRandom(S, s1Likelihood, rng);
     
     final int T = 1;
-    Pair<List<Double>, List<Integer>> sample = SamplingUtils.sampleWithStates(trueHmm, rng, T);
+    Pair<List<Integer>, List<Integer>> sample = SamplingUtils.sampleWithStates(trueHmm, rng, T);
 
-    HiddenMarkovModel<Double> hmm = trueHmm.clone();
+    HiddenMarkovModel<Integer> hmm = trueHmm.clone();
 
     CategoricalHMMPLFilter filter = new CategoricalHMMPLFilter(hmm, rng);
     
@@ -254,18 +255,19 @@ public class CategoricalHMMPLFilterTest {
     for (int k = 0; k < numIterations; k++) {
       filter.setNumParticles(N);
   
-      CountedDataDistribution<HMMTransitionState<Double>> distribution = 
-          (CountedDataDistribution<HMMTransitionState<Double>>) filter.createInitialLearnedObject();
+      CountedDataDistribution<HMMTransitionState<Integer>> distribution = 
+          (CountedDataDistribution<HMMTransitionState<Integer>>) filter.createInitialLearnedObject();
       
       /*
        * Recurse through the particle filter
        */
       for (int i = 0; i < T; i++) {
-        final Double y = sample.getFirst().get(i);
-        filter.update(distribution, y);
+        final Integer y = sample.getFirst().get(i);
+        final ObservedState obsState = new ObservedState(i, y);
+        filter.update(distribution, obsState);
   
         CountedDataDistribution<Integer> stateSums = new CountedDataDistribution<>(true);
-        for (HMMTransitionState<Double> state : distribution.getDomain()) {
+        for (HMMTransitionState<Integer> state : distribution.getDomain()) {
           stateSums.adjust(state.getState(), distribution.getLogFraction(state), distribution.getCount(state));
         }
   

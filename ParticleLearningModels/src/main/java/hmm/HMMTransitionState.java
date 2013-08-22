@@ -27,6 +27,15 @@ public class HMMTransitionState<T> extends AbstractCloneableSerializable {
   private HiddenMarkovModel<T> hmm;
   private Integer state;
   private Double stateLogWeight = null;
+  private long time;
+
+  public long getTime() {
+    return time;
+  }
+
+  public void setTime(long time) {
+    this.time = time;
+  }
 
   public Double getStateLogWeight() {
     return stateLogWeight;
@@ -54,25 +63,27 @@ public class HMMTransitionState<T> extends AbstractCloneableSerializable {
     clone.hmm = this.hmm;
     clone.stateHistory = this.stateHistory;
     clone.stateLogWeight = this.stateLogWeight != null ? new Double(this.stateLogWeight) : null;
-    
+    clone.time = this.time;
     return clone;
   }
 
   @Override
   public String toString() {
-    return "HMMTransitionState[" 
+    return "HMMTransitionState[t=" + this.time + ","
       + (this.prevState != null ? this.prevState.getState() : "NA") + " -> " 
-      + state 
-      + ", (" + stateLogWeight + ")]";
+      + this.state 
+      + ", (" + this.stateLogWeight + ")]";
   }
 
-  public HMMTransitionState(HiddenMarkovModel<T> hmm, Integer state) {
+  public HMMTransitionState(HiddenMarkovModel<T> hmm, Integer state, long time) {
+    this.time = time;
     this.hmm = hmm;
     this.state = state;
     this.stateHistory = Lists.newArrayList();
   }
 
-  public HMMTransitionState(HMMTransitionState<T> prevState, Integer newState) {
+  public HMMTransitionState(HMMTransitionState<T> prevState, Integer newState, long time) {
+    this.time = time;
     this.hmm = prevState.getHmm();
     this.state = newState;
     this.prevState = prevState;

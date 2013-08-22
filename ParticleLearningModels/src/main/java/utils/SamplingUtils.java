@@ -73,30 +73,32 @@ public class SamplingUtils {
     Preconditions.checkArgument(logWeights.length >= N);
 
     final List<Double> nLogWeights = Doubles.asList(logWeights);
-    final List<Double> nonZeroWeights = Lists.newArrayList();
-    final List<Double> cumNonZeroWeights = Lists.newArrayList();
+    final List<Double> nonZeroLogWeights = Lists.newArrayList();
+    final List<Double> cumNonZeroLogWeights = Lists.newArrayList();
     final List<D> nonZeroObjects = Lists.newArrayList();
     double nonZeroTotal = Double.NEGATIVE_INFINITY;
     for (int i = 0; i < nLogWeights.size(); i++) {
-      final double logWeight = nLogWeights.get(i) - logWeightSum;
-      nLogWeights.set(i, logWeight);
-      if (Double.compare(logWeight, Double.NEGATIVE_INFINITY) > 0d) {
+      final double normedLogWeight = nLogWeights.get(i) - logWeightSum;
+      nLogWeights.set(i, normedLogWeight);
+      if (Double.compare(normedLogWeight, Double.NEGATIVE_INFINITY) > 0d) {
         nonZeroObjects.add(domain.get(i));
-        nonZeroWeights.add(logWeight);
-        nonZeroTotal = LogMath2.add(nonZeroTotal, logWeight);
-        cumNonZeroWeights.add(nonZeroTotal);
+        nonZeroLogWeights.add(normedLogWeight);
+        nonZeroTotal = LogMath2.add(nonZeroTotal, normedLogWeight);
+        cumNonZeroLogWeights.add(nonZeroTotal);
       }
     }
     
-    List<Double> resultWeights;
+    Preconditions.checkState(Math.abs(Iterables.getLast(cumNonZeroLogWeights)) < 1e-7);
+    
+    List<Double> resultLogWeights;
     List<D> resultObjects;
-    final int nonZeroCount = nonZeroWeights.size();
+    final int nonZeroCount = nonZeroLogWeights.size();
     Preconditions.checkState(nonZeroCount >= N);
     if (nonZeroCount == N) {
       /*
        * Do nothing but remove the zero weights
        */
-      resultWeights = nonZeroWeights;
+      resultLogWeights = nonZeroLogWeights;
       resultObjects = nonZeroObjects;
       log.warn("removed zero weights");
 
@@ -109,21 +111,15 @@ public class SamplingUtils {
 //      resultWeights = Collections.nCopies(N, -Math.log(N));
 //      log.warn("non-zero less than N");
     } else {
-      /*
-       * Normalize the non-zero weights as required by findLogAlpha()
-       */
-      for (int i = 0; i < nonZeroWeights.size(); i++) {
-        nonZeroWeights.set(i, nonZeroWeights.get(i) - nonZeroTotal);
-      }
-  
-      final double logAlpha = findLogAlpha(Doubles.toArray(nonZeroWeights), N);
+
+      final double logAlpha = findLogAlpha(Doubles.toArray(nonZeroLogWeights), N);
       if (logAlpha == 0) {
         /*
          * Plain 'ol resample here, too 
          */
-        resultObjects = sampleMultipleLogScale(Doubles.toArray(cumNonZeroWeights), 
+        resultObjects = sampleMultipleLogScale(Doubles.toArray(cumNonZeroLogWeights), 
             nonZeroTotal, nonZeroObjects, random, N, false);
-        resultWeights = Collections.nCopies(N, -Math.log(N));
+        resultLogWeights = Collections.nCopies(N, -Math.log(N));
         log.warn("logAlpha = 0");
       } else {
 
@@ -133,8 +129,8 @@ public class SamplingUtils {
         List<Double> cummBelowLogWeights = Lists.newArrayList();
         List<D> belowObjects = Lists.newArrayList();
         double belowPTotal = Double.NEGATIVE_INFINITY;
-        for (int j = 0; j < nonZeroWeights.size(); j++) {
-          final double logQ = nonZeroWeights.get(j);
+        for (int j = 0; j < nonZeroLogWeights.size(); j++) {
+          final double logQ = nonZeroLogWeights.get(j);
           final double logP = Math.min(logQ + logAlpha, 0d);
           final D object = nonZeroObjects.get(j);
           logPValues.add(logP);
@@ -152,9 +148,9 @@ public class SamplingUtils {
           /*
            * All weights are below, resample
            */
-          resultObjects = sampleMultipleLogScale(Doubles.toArray(cumNonZeroWeights), 
+          resultObjects = sampleMultipleLogScale(Doubles.toArray(cumNonZeroLogWeights), 
               nonZeroTotal, nonZeroObjects, random, N, false);
-          resultWeights = Collections.nCopies(N, -Math.log(N));
+          resultLogWeights = Collections.nCopies(N, -Math.log(N));
           log.warn("all below logAlpha");
         } else {
           log.debug("water-filling applied!");
@@ -174,16 +170,16 @@ public class SamplingUtils {
           Preconditions.checkState(isLogNormalized(keeperLogWeights, 1e-7));
 
           resultObjects = keeperObjects;
-          resultWeights = keeperLogWeights;
+          resultLogWeights = keeperLogWeights;
         } 
       }
     }
     
-    Preconditions.checkState(resultWeights.size() == resultObjects.size()
-        && resultWeights.size() == N);
+    Preconditions.checkState(resultLogWeights.size() == resultObjects.size()
+        && resultLogWeights.size() == N);
     CountedDataDistribution<D> result = new CountedDataDistribution<D>(N, true);
     for (int i = 0; i < N; i++) {
-      result.increment(resultObjects.get(i), resultWeights.get(i));
+      result.increment(resultObjects.get(i), resultLogWeights.get(i));
     }
     return result;
   }
@@ -232,6 +228,8 @@ public class SamplingUtils {
     double logAlpha = Math.log(N);
     int k = 0;
     int pk = k;
+    
+    Preconditions.checkArgument(SamplingUtils.isLogNormalized(sLogWeights, 1e-7));
 
     while (true) {
       pk = k;

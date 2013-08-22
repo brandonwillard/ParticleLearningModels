@@ -47,6 +47,7 @@ import utils.CountedDataDistribution;
 import utils.LogMath2;
 import utils.MutableDoubleCount;
 import utils.SamplingUtils;
+import utils.WFCountedDataDistribution;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
@@ -68,6 +69,7 @@ public class CategoricalHMMPLFilter extends AbstractParticleFilter<ObservedState
 
   final Logger log = Logger
       .getLogger(CategoricalHMMPLFilter.class);
+  private boolean resampleOnly;
 
   public class CategoricalHMMPLUpdater extends AbstractCloneableSerializable
       implements
@@ -92,7 +94,7 @@ public class CategoricalHMMPLFilter extends AbstractParticleFilter<ObservedState
      * @param numParticles
      * @return
      */
-    public CountedDataDistribution<HMMTransitionState<Integer>> baumWelchInitialization(List<Integer> sample,
+    public WFCountedDataDistribution<HMMTransitionState<Integer>> baumWelchInitialization(List<Integer> sample,
         final int numParticles) {
 
       final int numPreRuns = DoubleMath.roundToInt(Math.log(numParticles)/Math.log(hmm.getNumStates()),
@@ -100,13 +102,13 @@ public class CategoricalHMMPLFilter extends AbstractParticleFilter<ObservedState
       TreeSet<HMMTransitionState<Integer>> expandedStates = CategoricalHMMPLFilter.expandForwardProbabilities(
           hmm, sample.subList(0, numPreRuns));
       Iterator<HMMTransitionState<Integer>> descIter = expandedStates.descendingIterator(); 
-//      Set<Double> uniqueWeights = Sets.newHashSet();
+      Set<Double> uniqueWeights = Sets.newHashSet();
       double[] logWeights = new double[expandedStates.size()];
       double totalLogWeight = Double.NEGATIVE_INFINITY;
       List<HMMTransitionState<Integer>> domain = Lists.newArrayList();
       for (int i = 0; i < expandedStates.size(); i++) {
         HMMTransitionState<Integer> state = descIter.next();
-//        uniqueWeights.add(state.getStateLogWeight());
+        uniqueWeights.add(state.getStateLogWeight());
         logWeights[i] = state.getStateLogWeight();
         totalLogWeight = LogMath2.add(totalLogWeight, state.getStateLogWeight());
         domain.add(state);
@@ -115,10 +117,10 @@ public class CategoricalHMMPLFilter extends AbstractParticleFilter<ObservedState
       /*
        * Now, water-fill these results.
        */
-      CountedDataDistribution<HMMTransitionState<Integer>> distribution = 
+      WFCountedDataDistribution<HMMTransitionState<Integer>> distribution = 
         SamplingUtils.waterFillingResample(logWeights, totalLogWeight, domain, rng, numParticles);
   
-//      System.out.println("unique weights = " + uniqueWeights.size());
+      System.out.println("unique weights = " + uniqueWeights.size());
 
       return distribution;
     }
@@ -251,9 +253,10 @@ public class CategoricalHMMPLFilter extends AbstractParticleFilter<ObservedState
     return orderedDistribution;
   }
 
-  public CategoricalHMMPLFilter(HiddenMarkovModel<Integer> hmm, Random rng) {
+  public CategoricalHMMPLFilter(HiddenMarkovModel<Integer> hmm, Random rng, boolean resampleOnly) {
     this.setUpdater(new CategoricalHMMPLUpdater(hmm, rng));
     this.setRandom(rng);
+    this.resampleOnly = resampleOnly;
   }
 
   @Override
@@ -297,12 +300,23 @@ public class CategoricalHMMPLFilter extends AbstractParticleFilter<ObservedState
       }
     }
 
-    /*
-     * Water-filling resample, for a smoothed predictive set
-     */
-    final CountedDataDistribution<HMMTransitionState<Integer>> resampledParticles =
-        SamplingUtils.waterFillingResample(Doubles.toArray(logLikelihoods), particleTotalLogLikelihood, 
-            particleSupport, this.random, this.numParticles);
+    final boolean wasWaterFillingApplied;
+    final CountedDataDistribution<HMMTransitionState<Integer>> resampledParticles;
+    if (this.resampleOnly) {
+      resampledParticles = new CountedDataDistribution<>(true);
+      resampledParticles.incrementAll(SamplingUtils.sampleMultipleLogScale(
+          SamplingUtils.accumulate(logLikelihoods), particleTotalLogLikelihood,
+          particleSupport, this.random, this.numParticles, true));
+      wasWaterFillingApplied = false;
+    } else {
+      /*
+       * Water-filling resample, for a smoothed predictive set
+       */
+      resampledParticles =
+          SamplingUtils.waterFillingResample(Doubles.toArray(logLikelihoods), particleTotalLogLikelihood, 
+              particleSupport, this.random, this.numParticles);
+      wasWaterFillingApplied = ((WFCountedDataDistribution)resampledParticles).wasWaterFillingApplied();
+    }
 
     /*
      * Propagate
@@ -310,6 +324,7 @@ public class CategoricalHMMPLFilter extends AbstractParticleFilter<ObservedState
     final CountedDataDistribution<HMMTransitionState<Integer>> updatedDist = new CountedDataDistribution<>(true);
     for (final Entry<HMMTransitionState<Integer>, MutableDouble> entry: resampledParticles.asMap().entrySet()) {
       final HMMTransitionState<Integer> updatedEntry = entry.getKey().clone();
+      updatedEntry.setWasWaterFillingApplied(wasWaterFillingApplied);
       updatedEntry.setStateLogWeight(entry.getValue().doubleValue());
       updatedDist.set(updatedEntry, entry.getValue().doubleValue(), ((MutableDoubleCount)entry.getValue()).count);
     }

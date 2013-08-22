@@ -67,7 +67,7 @@ public class SamplingUtils {
     return result;
   }
 
-  public static <D> CountedDataDistribution<D> waterFillingResample(final double[] logWeights, 
+  public static <D> WFCountedDataDistribution<D> waterFillingResample(final double[] logWeights, 
     final double logWeightSum, final List<D> domain, final Random random, final int N) {
     Preconditions.checkArgument(domain.size() == logWeights.length);
     Preconditions.checkArgument(logWeights.length >= N);
@@ -90,6 +90,7 @@ public class SamplingUtils {
     
     Preconditions.checkState(Math.abs(Iterables.getLast(cumNonZeroLogWeights)) < 1e-7);
     
+    boolean wasWaterFillingApplied = false;
     List<Double> resultLogWeights;
     List<D> resultObjects;
     final int nonZeroCount = nonZeroLogWeights.size();
@@ -153,6 +154,7 @@ public class SamplingUtils {
           resultLogWeights = Collections.nCopies(N, -Math.log(N));
           log.warn("all below logAlpha");
         } else {
+          wasWaterFillingApplied = true;
           log.debug("water-filling applied!");
           if (!cummBelowLogWeights.isEmpty()) {
             /*
@@ -177,7 +179,8 @@ public class SamplingUtils {
     
     Preconditions.checkState(resultLogWeights.size() == resultObjects.size()
         && resultLogWeights.size() == N);
-    CountedDataDistribution<D> result = new CountedDataDistribution<D>(N, true);
+    WFCountedDataDistribution<D> result = new WFCountedDataDistribution<D>(N, true);
+    result.setWasWaterFillingApplied(wasWaterFillingApplied);
     for (int i = 0; i < N; i++) {
       result.increment(resultObjects.get(i), resultLogWeights.get(i));
     }
@@ -319,6 +322,17 @@ public class SamplingUtils {
     for (int i = 0; i < logWeights.length; i++) {
       logWeights[i] -= totalLogWeights;
     }
+  }
+
+  public static double[] accumulate(List<Double> logLikelihoods) {
+    double pTotal = Double.NEGATIVE_INFINITY;
+    double[] result = new double[logLikelihoods.size()];
+    for (int i = 0; i < logLikelihoods.size(); i++) {
+      pTotal =
+          LogMath2.add(pTotal, logLikelihoods.get(i));
+      result[i] = pTotal;
+    }
+    return result;
   }
 
 }

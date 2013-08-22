@@ -43,6 +43,8 @@ public class HMMTransitionState<T> extends AbstractCloneableSerializable {
 
   private HMMTransitionState<T> prevState = null;
 
+  private boolean wasWaterFillingApplied = false;
+
 
   public void setStateLogWeight(Double stateLogWeight) {
     this.stateLogWeight = stateLogWeight;
@@ -97,6 +99,15 @@ public class HMMTransitionState<T> extends AbstractCloneableSerializable {
 
   public HMMTransitionState<T> getPrevState() {
     return this.prevState;
+  }
+
+  public void
+      setWasWaterFillingApplied(boolean wasWaterFillingApplied) {
+    this.wasWaterFillingApplied = wasWaterFillingApplied;
+  }
+
+  public boolean wasWaterFillingApplied() {
+    return wasWaterFillingApplied;
   }
 
 //  @Override

@@ -92,7 +92,7 @@ public class CategoricalHMMPLFilterTest {
 //        emissionFunctions
 //        );
 
-    CategoricalHMMPLFilter filter = new CategoricalHMMPLFilter(hmm, rng);
+    CategoricalHMMPLFilter filter = new CategoricalHMMPLFilter(hmm, rng, false);
     
     List<RingAccumulator<MutableDouble>> classErrorRates = Lists.newArrayList();
     for (int j = 0; j < hmm.getNumStates(); j++) {
@@ -240,7 +240,7 @@ public class CategoricalHMMPLFilterTest {
 
     HiddenMarkovModel<Integer> hmm = trueHmm.clone();
 
-    CategoricalHMMPLFilter filter = new CategoricalHMMPLFilter(hmm, rng);
+    CategoricalHMMPLFilter filter = new CategoricalHMMPLFilter(hmm, rng, false);
     
     List<RingAccumulator<MutableDouble>> classErrorRates = Lists.newArrayList();
     for (int j = 0; j < hmm.getNumStates(); j++) {

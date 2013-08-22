@@ -9,6 +9,16 @@ public class WrappedWeightedValue<T> extends DefaultWeightedValue<T> {
 
   private int count = 0;
 
+  public static <ValueType> WrappedWeightedValue<ValueType> create(
+      final ValueType value, final double weight) {
+    return new WrappedWeightedValue<ValueType>(value, weight);
+  }
+
+  public static <ValueType> WrappedWeightedValue<ValueType> create(
+      final ValueType value, final double weight, int count) {
+    return new WrappedWeightedValue<ValueType>(value, weight, count);
+  }
+
   public WrappedWeightedValue() {
     super();
   }

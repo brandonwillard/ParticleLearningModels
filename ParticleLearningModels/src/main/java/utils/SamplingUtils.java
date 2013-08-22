@@ -87,7 +87,7 @@ public class SamplingUtils {
         cumNonZeroWeights.add(nonZeroTotal);
       }
     }
-  
+    
     List<Double> resultWeights;
     List<D> resultObjects;
     final int nonZeroCount = nonZeroWeights.size();
@@ -109,6 +109,13 @@ public class SamplingUtils {
 //      resultWeights = Collections.nCopies(N, -Math.log(N));
 //      log.warn("non-zero less than N");
     } else {
+      /*
+       * Normalize the non-zero weights as required by findLogAlpha()
+       */
+      for (int i = 0; i < nonZeroWeights.size(); i++) {
+        nonZeroWeights.set(i, nonZeroWeights.get(i) - nonZeroTotal);
+      }
+  
       final double logAlpha = findLogAlpha(Doubles.toArray(nonZeroWeights), N);
       if (logAlpha == 0) {
         /*
@@ -297,6 +304,23 @@ public class SamplingUtils {
     }
     return samples;
 
+  }
+
+  public static double logSum(final double[] logWeights) {
+    double pTotal = Double.NEGATIVE_INFINITY;
+    for (int i = 0; i < logWeights.length; i++) {
+      pTotal =
+          LogMath2.add(pTotal, logWeights[i]);
+    }
+    return pTotal;
+  }
+
+  public static void logNormalize(final double[] logWeights) {
+    final double totalLogWeights = SamplingUtils.logSum(
+        logWeights);
+    for (int i = 0; i < logWeights.length; i++) {
+      logWeights[i] -= totalLogWeights;
+    }
   }
 
 }

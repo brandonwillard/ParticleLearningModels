@@ -672,6 +672,15 @@ public class CountedDataDistribution<KeyType> extends
   }
 
   @Override
+  public String toString() {
+    StringBuilder builder = new StringBuilder();
+    builder.append("CountedDataDistribution [isLogScale=")
+        .append(isLogScale).append(", total=").append(total)
+        .append(", map=").append(map).append("]");
+    return builder.toString();
+  }
+
+  @Override
   public void set(final KeyType key, final double value) {
     // TODO FIXME terrible hack!
     final MutableDoubleCount entry =

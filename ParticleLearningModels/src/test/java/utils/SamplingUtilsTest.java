@@ -64,6 +64,30 @@ public class SamplingUtilsTest {
     assertEquals(Math.log(3), pTotal, 1e-7);
     assertEquals(1.29928298413d, logAlpha3, 1e-7);
   }
+  
+  @Test
+  public void testFindLogAlpha2() {
+    double[] testLogWeights =
+        new double[] { 
+        -4.758895070648572, -2.561670493312353, 
+        -4.954271557120856, -2.757046979784638, 
+        -2.757046979784638, -4.954271557120856, 
+        -4.954271557120856, -2.757046979784638, 
+        -2.757046979784638, -4.954271557120856 };
+
+    SamplingUtils.logNormalize(testLogWeights);
+
+    final double logAlpha1 =
+        SamplingUtils.findLogAlpha(testLogWeights, 5);
+
+    double pTotal = Double.NEGATIVE_INFINITY;
+    for (int i = 0; i < testLogWeights.length; i++) {
+      pTotal =
+          LogMath2.add(pTotal,
+              Math.min(testLogWeights[i] + logAlpha1, 0d));
+    }
+    assertEquals(Math.log(5), pTotal, 1e-7);
+  }
 
   /**
    * Test basic resample with flat weights

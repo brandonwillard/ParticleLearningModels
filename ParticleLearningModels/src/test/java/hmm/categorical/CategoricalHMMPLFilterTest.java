@@ -1,4 +1,4 @@
-package hmm;
+package hmm.categorical;
 
 import static org.junit.Assert.*;
 import gov.sandia.cognition.learning.algorithm.hmm.HiddenMarkovModel;
@@ -11,6 +11,8 @@ import gov.sandia.cognition.statistics.DataDistribution;
 import gov.sandia.cognition.statistics.distribution.DefaultDataDistribution;
 import gov.sandia.cognition.util.Pair;
 import gov.sandia.cognition.util.WeightedValue;
+import hmm.HmmTransitionState;
+import hmm.categorical.CategoricalHmmPlFilter;
 
 import java.math.RoundingMode;
 import java.util.ArrayList;
@@ -26,6 +28,7 @@ import org.junit.Test;
 
 import utils.CountedDataDistribution;
 import utils.LogMath2;
+import utils.ObservedValue;
 import utils.SamplingUtils;
 
 import com.google.common.base.Preconditions;
@@ -42,57 +45,22 @@ public class CategoricalHMMPLFilterTest {
    * the marginal class posterior probabilities.
    */
   @Test
-  public void testMarginalClassProbabilities() {
+  public void testMarginalClassProbabilities1() {
     final Random rng = new Random();//123452388l);
 
     final int S = 2;
     DefaultDataDistribution<Integer> s1Likelihood = new DefaultDataDistribution<Integer>();
     s1Likelihood.increment(0, 1d/3d);
     s1Likelihood.increment(1, 1d/3d);
-    s1Likelihood.increment(2, 1d/3d);
-    s1Likelihood.increment(3, 1d/3d);
 
     HiddenMarkovModel<Integer> trueHmm = HiddenMarkovModel.createRandom(S, s1Likelihood, rng);
 
-//    DefaultDataDistribution<Double> s2Likelihood = new DefaultDataDistribution<Double>();
-//    s2Likelihood.increment(0d, 1d/3d);
-//    s2Likelihood.increment(1d, 1d/3d);
-//    s2Likelihood.increment(2d, 1d/3d);
-//
-//    DefaultDataDistribution<Double> s3Likelihood = new DefaultDataDistribution<Double>();
-//    s3Likelihood.increment(0d, 1d/3d);
-//    s3Likelihood.increment(1d, 1d/3d);
-//    s3Likelihood.increment(2d, 1d/3d);
-//    
-//    List<DefaultDataDistribution<Double>> emissionFunctions = Lists.newArrayList();
-//    emissionFunctions.add(s1Likelihood);
-//    emissionFunctions.add(s2Likelihood);
-//    emissionFunctions.add(s3Likelihood);
-//    
-//    HiddenMarkovModel<Double> trueHmm = new HiddenMarkovModel<Double>(
-//        VectorFactory.getDefault().copyArray(new double[] {1d/4d, 1d/4d, 2d/4d}),
-//        MatrixFactory.getDefault().copyArray(new double[][] {
-//            // (i,j) j: from, i: to
-//            {1d/3d, 1d/3d, 1d/3d}, 
-//            {1d/3d, 1d/3d, 1d/3d}, 
-//            {1d/3d, 1d/3d, 1d/3d}}),
-//        emissionFunctions);
-    
-    final int T = 3;
+    final int T = 30;
     Pair<List<Integer>, List<Integer>> sample = SamplingUtils.sampleWithStates(trueHmm, rng, T);
 
     HiddenMarkovModel<Integer> hmm = trueHmm.clone();
-//    HiddenMarkovModel<Double> hmm = new HiddenMarkovModel<Double>(
-//        VectorFactory.getDefault().copyArray(new double[] {1d/4d, 1d/4d, 2d/4d}),
-//        MatrixFactory.getDefault().copyArray(new double[][] {
-//            // (i,j) j: from, i: to
-//            {1d/3d, 1d/3d, 1d/3d}, 
-//            {1d/3d, 1d/3d, 1d/3d}, 
-//            {1d/3d, 1d/3d, 1d/3d}}),
-//        emissionFunctions
-//        );
 
-    CategoricalHMMPLFilter filter = new CategoricalHMMPLFilter(hmm, rng, false);
+    CategoricalHmmPlFilter filter = new CategoricalHmmPlFilter(hmm, rng, false);
     
     List<RingAccumulator<MutableDouble>> classErrorRates = Lists.newArrayList();
     for (int j = 0; j < hmm.getNumStates(); j++) {
@@ -107,19 +75,19 @@ public class CategoricalHMMPLFilterTest {
     for (int k = 0; k < numIterations; k++) {
       filter.setNumParticles(N);
   
-      CountedDataDistribution<HMMTransitionState<Integer>> distribution = 
-          (CountedDataDistribution<HMMTransitionState<Integer>>) filter.createInitialLearnedObject();
+      CountedDataDistribution<HmmTransitionState<Integer>> distribution = 
+          (CountedDataDistribution<HmmTransitionState<Integer>>) filter.createInitialLearnedObject();
       
       /*
        * Recurse through the particle filter
        */
       for (int i = 0; i < T; i++) {
         final Integer y = sample.getFirst().get(i);
-        final ObservedState obsState = new ObservedState(i, y);
+        final ObservedValue obsState = new ObservedValue(i, y);
         filter.update(distribution, obsState);
   
         CountedDataDistribution<Integer> stateSums = new CountedDataDistribution<>(true);
-        for (HMMTransitionState<Integer> state : distribution.getDomain()) {
+        for (HmmTransitionState<Integer> state : distribution.getDomain()) {
           stateSums.adjust(state.getState(), distribution.getLogFraction(state), distribution.getCount(state));
         }
   
@@ -141,7 +109,7 @@ public class CategoricalHMMPLFilterTest {
       errMeans.add(classErrorRates.get(j).getMean().value);
     }
     assertArrayEquals(Doubles.toArray(Collections.nCopies(hmm.getNumStates(), 0d)), 
-        Doubles.toArray(errMeans), 5e-3);
+        Doubles.toArray(errMeans), 1e-1);
   }
 
   @Test
@@ -166,11 +134,11 @@ public class CategoricalHMMPLFilterTest {
             {1d/3d, 1d/3d}}),
         emissionFunctions);
     
-    TreeSet<HMMTransitionState<Double>> result = CategoricalHMMPLFilter.
+    TreeSet<HmmTransitionState<Double>> result = CategoricalHmmPlFilter.
         expandForwardProbabilities(hmm, Lists.newArrayList(0d, 1d));
     
     assertTrue(result.size() == 4);
-    for (HMMTransitionState<Double> chain : result) {
+    for (HmmTransitionState<Double> chain : result) {
       System.out.println(chain.getStateHistory());
       System.out.println("\t" + chain);
       assertEquals(Math.log(1d/4d), chain.getStateLogWeight(), 1e-7);
@@ -201,13 +169,13 @@ public class CategoricalHMMPLFilterTest {
         emissionFunctions);
     
     ArrayList<Double> observations = Lists.newArrayList(0d, 1d);
-    TreeSet<HMMTransitionState<Double>> result = CategoricalHMMPLFilter.
+    TreeSet<HmmTransitionState<Double>> result = CategoricalHmmPlFilter.
         expandForwardProbabilities(hmm, observations);
     
     assertTrue(result.size() == Math.pow(hmm.getNumStates(), observations.size()));
     double totalLogLikelihood = Double.NEGATIVE_INFINITY;
     Set<Double> uniqueValues = Sets.newHashSet();
-    for (HMMTransitionState<Double> chain : result) {
+    for (HmmTransitionState<Double> chain : result) {
       System.out.println(chain.getStateHistory());
       System.out.println("\t" + chain);
       uniqueValues.add(chain.getStateLogWeight());
@@ -217,79 +185,6 @@ public class CategoricalHMMPLFilterTest {
     assertEquals(0d, totalLogLikelihood, 1e-7);
     System.out.println("uniquely weighed chains = " + uniqueValues.size()
         + "/" + result.size());
-  }
-  
-  /**
-   * Test that the HMM filter reaches an expected level of accuracy for
-   * the marginal class posterior probabilities.  Initialized with
-   * Baum-Welch-derived particles.
-   */
-  @Test
-  public void testMarginalClassProbabilities2() {
-    final Random rng = new Random();//123452388l);
-
-    final int S = 2;
-    DefaultDataDistribution<Integer> s1Likelihood = new DefaultDataDistribution<Integer>();
-    s1Likelihood.increment(0, 1d/2d);
-    s1Likelihood.increment(1, 1d/2d);
-
-    HiddenMarkovModel<Integer> trueHmm = HiddenMarkovModel.createRandom(S, s1Likelihood, rng);
-    
-    final int T = 1;
-    Pair<List<Integer>, List<Integer>> sample = SamplingUtils.sampleWithStates(trueHmm, rng, T);
-
-    HiddenMarkovModel<Integer> hmm = trueHmm.clone();
-
-    CategoricalHMMPLFilter filter = new CategoricalHMMPLFilter(hmm, rng, false);
-    
-    List<RingAccumulator<MutableDouble>> classErrorRates = Lists.newArrayList();
-    for (int j = 0; j < hmm.getNumStates(); j++) {
-      RingAccumulator<MutableDouble> cRate = new RingAccumulator<MutableDouble>();
-      classErrorRates.add(cRate);
-    }
-
-    List<Vector> forwardResults = hmm.stateBeliefs(sample.getFirst());
-
-    final int numIterations = 2;
-    final int N = 10000;
-    for (int k = 0; k < numIterations; k++) {
-      filter.setNumParticles(N);
-  
-      CountedDataDistribution<HMMTransitionState<Integer>> distribution = 
-          (CountedDataDistribution<HMMTransitionState<Integer>>) filter.createInitialLearnedObject();
-      
-      /*
-       * Recurse through the particle filter
-       */
-      for (int i = 0; i < T; i++) {
-        final Integer y = sample.getFirst().get(i);
-        final ObservedState obsState = new ObservedState(i, y);
-        filter.update(distribution, obsState);
-  
-        CountedDataDistribution<Integer> stateSums = new CountedDataDistribution<>(true);
-        for (HMMTransitionState<Integer> state : distribution.getDomain()) {
-          stateSums.adjust(state.getState(), distribution.getLogFraction(state), distribution.getCount(state));
-        }
-  
-        /*
-         * Check marginal state probabilities
-         */
-        Preconditions.checkState(stateSums.getDomainSize() <= hmm.getNumStates());
-        for (int j = 0; j < hmm.getNumStates(); j++) {
-          final double classError = forwardResults.get(i).getElement(j) - stateSums.getFraction(j);
-          Preconditions.checkState(!Double.isNaN(classError));
-          classErrorRates.get(j).accumulate(new MutableDouble(classError));
-        }
-      }
-    }
-    
-    List<Double> errMeans = Lists.newArrayList();
-    for (int j = 0; j < hmm.getNumStates(); j++) {
-      System.out.println("meanClassProbError=" + classErrorRates.get(j).getMean().value);
-      errMeans.add(classErrorRates.get(j).getMean().value);
-    }
-    assertArrayEquals(Doubles.toArray(Collections.nCopies(hmm.getNumStates(), 0d)), 
-        Doubles.toArray(errMeans), 5e-3);
   }
   
 }

@@ -21,7 +21,7 @@ import gov.sandia.cognition.util.WeightedValue;
  *
  * @param <T>
  */
-public class HMMTransitionState<T> extends AbstractCloneableSerializable {
+public class HmmTransitionState<T> extends AbstractCloneableSerializable {
   
   private List<WeightedValue<Integer>> stateHistory;
   private HiddenMarkovModel<T> hmm;
@@ -41,7 +41,7 @@ public class HMMTransitionState<T> extends AbstractCloneableSerializable {
     return stateLogWeight;
   }
 
-  private HMMTransitionState<T> prevState = null;
+  private HmmTransitionState<T> prevState = null;
 
   private boolean wasWaterFillingApplied = false;
 
@@ -59,8 +59,8 @@ public class HMMTransitionState<T> extends AbstractCloneableSerializable {
   }
 
   @Override
-  public HMMTransitionState<T> clone() {
-    HMMTransitionState<T> clone = (HMMTransitionState<T>) super.clone();
+  public HmmTransitionState<T> clone() {
+    HmmTransitionState<T> clone = (HmmTransitionState<T>) super.clone();
     clone.state = new Integer(this.state);
     clone.hmm = this.hmm;
     clone.stateHistory = this.stateHistory;
@@ -77,14 +77,14 @@ public class HMMTransitionState<T> extends AbstractCloneableSerializable {
       + ", (" + this.stateLogWeight + ")]";
   }
 
-  public HMMTransitionState(HiddenMarkovModel<T> hmm, Integer state, long time) {
+  public HmmTransitionState(HiddenMarkovModel<T> hmm, Integer state, long time) {
     this.time = time;
     this.hmm = hmm;
     this.state = state;
     this.stateHistory = Lists.newArrayList();
   }
 
-  public HMMTransitionState(HMMTransitionState<T> prevState, Integer newState, long time) {
+  public HmmTransitionState(HmmTransitionState<T> prevState, Integer newState, long time) {
     this.time = time;
     this.hmm = prevState.getHmm();
     this.state = newState;
@@ -97,7 +97,7 @@ public class HMMTransitionState<T> extends AbstractCloneableSerializable {
     return state;
   }
 
-  public HMMTransitionState<T> getPrevState() {
+  public HmmTransitionState<T> getPrevState() {
     return this.prevState;
   }
 

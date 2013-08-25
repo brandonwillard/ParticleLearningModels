@@ -1,11 +1,11 @@
-package hmm;
+package utils;
 
-public class ObservedState {
+public class ObservedValue<T> {
   
   private final long time;
-  private final int observedState;
+  private final T observedState;
 
-  public ObservedState(long time, int observedState) {
+  public ObservedValue(long time, T observedState) {
     this.time = time;
     this.observedState = observedState;
   }
@@ -14,7 +14,7 @@ public class ObservedState {
     return time;
   }
 
-  public int getObservedState() {
+  public T getObservedState() {
     return observedState;
   }
 }

@@ -10,11 +10,11 @@ import gov.sandia.cognition.statistics.ComputableDistribution;
 import gov.sandia.cognition.util.Pair;
 import gov.sandia.cognition.util.WeightedValue;
 
-public class ExposedHMM<ObservationType> extends HiddenMarkovModel<ObservationType> {
+public class ExposedHmm<ObservationType> extends HiddenMarkovModel<ObservationType> {
 
   private static final long serialVersionUID = 7707497613044304004L;
 
-  public ExposedHMM(HiddenMarkovModel<ObservationType> hmm) {
+  public ExposedHmm(HiddenMarkovModel<ObservationType> hmm) {
     this.emissionFunctions = hmm.getEmissionFunctions();
     this.initialProbability = hmm.getInitialProbability();
     this.transitionProbability = hmm.getTransitionProbability();
@@ -42,7 +42,7 @@ public class ExposedHMM<ObservationType> extends HiddenMarkovModel<ObservationTy
   }
 
   @Override
-  protected ArrayList<Vector> computeStateObservationLikelihood(
+  public ArrayList<Vector> computeStateObservationLikelihood(
     ArrayList<WeightedValue<Vector>> alphas,
     ArrayList<WeightedValue<Vector>> betas, double scaleFactor) {
     // TODO Auto-generated method stub

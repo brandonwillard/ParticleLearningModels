@@ -15,7 +15,7 @@ import gov.sandia.cognition.util.DefaultPair;
 import gov.sandia.cognition.util.DefaultWeightedValue;
 import gov.sandia.cognition.util.Pair;
 import gov.sandia.cognition.util.WeightedValue;
-import hmm.HMMTransitionState;
+import hmm.HmmTransitionState;
 
 import java.util.Arrays;
 import java.util.Collection;

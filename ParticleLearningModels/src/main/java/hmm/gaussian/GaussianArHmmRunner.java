@@ -50,9 +50,12 @@ public class GaussianArHmmRunner extends HmmResampleComparisonRunner {
     final double[] a = {0.9d, 0.9d};
     final double[] sigma2 = {Math.pow(0.2d, 2), Math.pow(1.2d, 2)};
     final double sigma_y2 = Math.pow(0.3d, 2);
-    Matrix modelCovariance1 = MatrixFactory.getDefault().copyArray(new double[][] {{0.2d}});
-    Matrix modelCovariance2 = MatrixFactory.getDefault().copyArray(new double[][] {{1.2d}});
-    Matrix measurementCovariance = MatrixFactory.getDefault().copyArray(new double[][] {{0.3d}});
+    Matrix modelCovariance1 = MatrixFactory.getDefault().copyArray(
+        new double[][] {{Math.pow(0.2d, 2)}});
+    Matrix modelCovariance2 = MatrixFactory.getDefault().copyArray(
+        new double[][] {{Math.pow(1.2d, 2)}});
+    Matrix measurementCovariance = MatrixFactory.getDefault().copyArray(
+        new double[][] {{Math.pow(0.3d, 2)}});
     LinearDynamicalSystem model1 = new LinearDynamicalSystem(
         MatrixFactory.getDefault().copyArray(new double[][] {{0.9d}}),
         MatrixFactory.getDefault().copyArray(new double[][] {{1}}),
@@ -179,15 +182,19 @@ public class GaussianArHmmRunner extends HmmResampleComparisonRunner {
           wfRmseEvaluator.evaluate(k, simulation.get(i), wfDistribution);
           mkfRmseEvaluator.evaluate(k, simulation.get(i), rsDistribution);
         }
+
+        if ((i+1) % (T/4d) < 1) {
+          log.info("avg. mkf latency=" + mkfLatency.getMean().value);
+          log.info("avg. wf latency=" + wfLatency.getMean().value);
+          log.info("avg. mkfRmse=" + mkfRmseEvaluator.getTotalRate().getMean().value);
+          log.info("avg. wfRmse=" + wfRmseEvaluator.getTotalRate().getMean().value);
+          log.info("avg. mkfClassRate=" + mkfClassEvaluator.getTotalRate().getMean().value);
+          log.info("avg. wfClassRate=" + wfClassEvaluator.getTotalRate().getMean().value);
+        }
       }
+
     }
 
-    log.info("avg. mkf latency=" + mkfLatency.getMean().value);
-    log.info("avg. wf latency=" + wfLatency.getMean().value);
-    log.info("avg. mkfRmse=" + mkfRmseEvaluator.getTotalRate().getMean().value);
-    log.info("avg. wfRmse=" + wfRmseEvaluator.getTotalRate().getMean().value);
-    log.info("avg. mkfClassRate=" + mkfClassEvaluator.getTotalRate().getMean().value);
-    log.info("avg. wfClassRate=" + wfClassEvaluator.getTotalRate().getMean().value);
     writer.close();
   }
     

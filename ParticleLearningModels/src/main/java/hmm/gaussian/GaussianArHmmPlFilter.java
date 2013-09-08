@@ -94,8 +94,27 @@ public class GaussianArHmmPlFilter extends HmmPlFilter<Double> {
 
     @Override
     public HmmTransitionState<Double> update(
-      HmmTransitionState<Double> previousParameter) {
-      return previousParameter.clone();
+      HmmTransitionState<Double> priorParameter) {
+
+      final GaussianArTransitionState predState = 
+          (GaussianArTransitionState)priorParameter;
+
+      final double priorPredCov = predState.getPriorPredSuffStats().getVariance();
+      final double priorPredMean = predState.getPriorPredSuffStats().getMean();
+
+      final double postCovariance = 1d/(1d/priorPredCov + 1d/sigma_y2);
+      final double postMean = (priorPredMean/priorPredCov 
+          + priorParameter.getObservedValue().getObservedValue()/sigma_y2)
+          * postCovariance;
+
+      final UnivariateGaussian postDist =
+          new UnivariateGaussian(postMean, postCovariance);
+  
+      final GaussianArTransitionState postState =
+          predState.clone();
+      postState.setSuffStat(postDist);
+
+      return postState;
     }
 
   }
@@ -118,26 +137,20 @@ public class GaussianArHmmPlFilter extends HmmPlFilter<Double> {
 
   @Override
   protected HmmTransitionState<Double> propagate(
-      HmmTransitionState<Double> particle, int i, ObservedValue<Double> data) {
+      HmmTransitionState<Double> particle, int predClass, ObservedValue<Double> data) {
     /*
      * Perform the filtering step
      */
     final GaussianArTransitionState prevState = (GaussianArTransitionState) particle;
     final UnivariateGaussian priorDist = prevState.getSuffStat();
-    final double priorPredMean = a[i] * priorDist.getMean();
-    final double priorPredCov = a[i] * a[i] * priorDist.getVariance() + sigma2[i];
+    final double priorPredMean = a[predClass] * priorDist.getMean();
+    final double priorPredCov = a[predClass] * a[predClass] * priorDist.getVariance() + sigma2[predClass];
     
-    final double postCovariance = 1d/(1d/sigma2[i] + 1d/sigma_y2);
-    final double postMean = (priorPredMean/priorPredCov 
-        + data.getObservedValue()/sigma_y2)
-        * postCovariance;
-    final UnivariateGaussian postDist =
-        new UnivariateGaussian(postMean, postCovariance);
     final HiddenMarkovModel<Double> newHmm = prevState.getHmm();
 
     final GaussianArTransitionState newTransState =
         new GaussianArTransitionState(prevState, newHmm,
-            i, data, postDist);
+            predClass, data, null);
 
     newTransState.setPriorPredSuffStats(new UnivariateGaussian(priorPredMean, priorPredCov));
     

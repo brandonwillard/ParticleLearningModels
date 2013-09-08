@@ -29,7 +29,7 @@ import com.google.common.math.DoubleMath;
 public class HmmResampleComparisonRunner {
 
   protected static final Logger log = Logger
-        .getLogger(SamplingUtils.class);
+        .getLogger(HmmResampleComparisonRunner.class);
 
   public HmmResampleComparisonRunner() {
     super();

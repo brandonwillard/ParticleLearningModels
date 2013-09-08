@@ -129,11 +129,14 @@ public class GaussianArHmmMkfFilter
         final UnivariateGaussian priorDist = particle.getSuffStat();
         final double priorPredMean = a[i] * priorDist.getMean();
         final double priorPredCov = a[i] * a[i] * priorDist.getVariance() + sigma2[i];
-        final double postCovariance = 1d/(1d/sigma2[i] + 1d/sigma_y2);
+
+        final double postCovariance = 1d/(1d/priorPredCov + 1d/sigma_y2);
         final double postMean = (priorPredMean/priorPredCov + data.getObservedValue()/sigma_y2)
             * postCovariance;
+
         final UnivariateGaussian postDist =
             new UnivariateGaussian(postMean, postCovariance);
+
         final GaussianArTransitionState transState =
             new GaussianArTransitionState(particle, newHmm,
                 i, data, postDist);
@@ -144,6 +147,7 @@ public class GaussianArHmmMkfFilter
         final double logCt = -Math.log(priorPredCov)/2d - 
             0.5d * Math.pow(data.getObservedValue() - priorPredMean, 2)/
             (priorPredCov + sigma_y2);
+
         final double transStateLogLik =
             logCt + Math.log(hmm.getTransitionProbability().getElement(
                     i, particle.getState()));

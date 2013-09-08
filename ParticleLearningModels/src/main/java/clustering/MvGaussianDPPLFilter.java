@@ -191,7 +191,7 @@ public class MvGaussianDPPLFilter extends AbstractParticleFilter<Vector, MvGauss
 
     final List<MvGaussianDPDistribution> resampledParticles =
         SamplingUtils.sampleMultipleLogScale(cumulativeLogLikelihoods, particleTotalLogLikelihood,
-            particleSupport, random, this.numParticles, true);
+            particleSupport, random, this.numParticles);
 
     /*
      * Propagate

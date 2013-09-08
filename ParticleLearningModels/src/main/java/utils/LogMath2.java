@@ -15,9 +15,13 @@ public class LogMath2 extends LogMath {
     final double maxVal;
     final double minVal;
     if (logX > logY) {
+      if (Double.isInfinite(logY))
+        return logX;
       maxVal = logX;
       minVal = logY;
     } else if (logY > logX) {
+      if (Double.isInfinite(logX))
+        return logY;
       maxVal = logY;
       minVal = logX;
     } else {
@@ -43,8 +47,12 @@ public class LogMath2 extends LogMath {
    */
   public static double subtract(final double logX, final double logY) {
     if (logX > logY) {
+      if (Double.isInfinite(logY))
+        return logX;
+
       final double z = logY - logX;
-      if (0d < z && z <= LOG_2)
+//      if (0d < z && z <= LOG_2)
+      if (z <= LOG_2)
         return logX + Math.log(-Math.expm1(z));
       else
         return logX + Math.log1p(-Math.exp(z));

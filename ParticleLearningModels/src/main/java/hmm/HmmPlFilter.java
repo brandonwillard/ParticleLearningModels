@@ -9,6 +9,7 @@ import gov.sandia.cognition.statistics.DiscreteSamplingUtil;
 import gov.sandia.cognition.statistics.bayesian.AbstractParticleFilter;
 import gov.sandia.cognition.util.AbstractCloneableSerializable;
 import gov.sandia.cognition.util.WeightedValue;
+import hmm.HmmTransitionState.ResampleType;
 
 import java.math.RoundingMode;
 import java.util.ArrayList;
@@ -66,7 +67,7 @@ public abstract class HmmPlFilter<Response>
               Math.log(numParticles) / Math.log(hmm.getNumStates()),
               RoundingMode.CEILING);
       final TreeSet<HmmTransitionState<Response>> expandedStates =
-          HmmPlFilter.expandForwardProbabilities(hmm,
+          this.expandForwardProbabilities(hmm,
               sample.subList(0, numPreRuns));
       final Iterator<HmmTransitionState<Response>> descIter =
           expandedStates.descendingIterator();
@@ -95,12 +96,100 @@ public abstract class HmmPlFilter<Response>
 
       return distribution;
     }
+    
+    protected <T> List<Vector> computeSmoothedJointProbs(final HiddenMarkovModel<T> hmm, List<T> observations) {
+      final ExposedHmm<T> eHmm = new ExposedHmm<T>(hmm);
+  
+      /*
+       * Compute Baum-Welch smoothed distribution
+       */
+      final ArrayList<Vector> obsLikelihoodSequence =
+          eHmm.computeObservationLikelihoods(observations);
+      final ArrayList<WeightedValue<Vector>> forwardProbabilities =
+          eHmm.computeForwardProbabilities(obsLikelihoodSequence, true);
+  
+      final List<Vector> jointProbs = Lists.newArrayList();
+      for (int i = 0; i < forwardProbabilities.size() - 1; i++) {
+        final WeightedValue<Vector> input = forwardProbabilities.get(i);
+        final Vector prod =
+            hmm.getTransitionProbability().times(input.getValue());
+        jointProbs.add(prod.scale(1d / prod.norm1()));
+      }
+      jointProbs
+          .add(Iterables.getLast(forwardProbabilities).getValue());
+      
+      return jointProbs;
+    }
 
-    @Override
-    public double computeLogLikelihood(
-      HmmTransitionState<Response> particle,
-      ObservedValue<Response> observation) {
-      return Double.NaN;
+    /**
+     * Computes the joint smoothed probability over the given observations 
+     * until numParticles-many paths are reached,
+     * then returns the resulting ordered, weighed sample path.
+     * 
+     * @param hmm
+     * @param observations
+     * @param numParticles
+     * @return
+     */
+    public <T> TreeSet<HmmTransitionState<T>>
+        expandForwardProbabilities(final HiddenMarkovModel<T> hmm,
+          List<T> observations) {
+
+      List<Vector> jointProbs = computeSmoothedJointProbs(hmm, observations);
+  
+      final Integer[] states = new Integer[hmm.getNumStates()];
+      for (int i = 0; i < hmm.getNumStates(); i++) {
+        states[i] = i;
+      }
+      final ICombinatoricsVector<Integer> initialVector =
+          Factory.createVector(states);
+      final Generator<Integer> gen =
+          Factory.createPermutationWithRepetitionGenerator(
+              initialVector, observations.size());
+  
+      /*
+       * Iterate through possible state permutations and find their
+       * log likelihoods via the Baum-Welch results above.
+       */
+      final TreeSet<HmmTransitionState<T>> orderedDistribution =
+          Sets.newTreeSet(new Comparator<HmmTransitionState<T>>() {
+            @Override
+            public int compare(HmmTransitionState<T> o1,
+              HmmTransitionState<T> o2) {
+              final int compVal =
+                  Double.compare(o1.getStateLogWeight(),
+                      o2.getStateLogWeight());
+              return compVal == 0 ? 1 : compVal;
+            }
+          });
+      for (final ICombinatoricsVector<Integer> combination : gen) {
+  
+        HmmTransitionState<T> currentState = null;
+        double logWeightOfState = 0d;
+        for (int i = 0; i < combination.getSize(); i++) {
+          final Vector smoothedProbsAtTime =
+              Iterables.get(jointProbs, i);
+          final int stateAtTime = combination.getVector().get(i);
+          // TODO assuming it's normalized, is that true?
+          final double logWeightAtTime =
+              Math.log(smoothedProbsAtTime.getElement(stateAtTime));
+  
+          logWeightOfState += logWeightAtTime;
+          if (currentState == null) {
+            currentState =
+                new HmmTransitionState<T>(hmm, stateAtTime, 
+                    new ObservedValue<>(i, observations.get(i)));
+          } else {
+            currentState =
+                new HmmTransitionState<T>(currentState, currentState.getHmm(), stateAtTime, 
+                    new ObservedValue<>(i, observations.get(i)));
+          }
+          currentState.setStateLogWeight(logWeightOfState);
+        }
+        orderedDistribution.add(currentState);
+      }
+  
+      return orderedDistribution;
     }
 
     @Override
@@ -114,7 +203,7 @@ public abstract class HmmPlFilter<Response>
                 this.rng, this.hmm.getInitialProbability());
         final HmmTransitionState<Response> particle =
             new HmmTransitionState<Response>(this.hmm, sampledState,
-                0l);
+                null);
 
         final double logWeight = -Math.log(numParticles);
         particle.setStateLogWeight(logWeight);
@@ -123,11 +212,6 @@ public abstract class HmmPlFilter<Response>
       return initialParticles;
     }
 
-    @Override
-    public HmmTransitionState<Response> update(
-      HmmTransitionState<Response> previousParameter) {
-      return previousParameter.clone();
-    }
   }
 
   private static final long serialVersionUID = 2271089378484039661L;
@@ -165,16 +249,14 @@ public abstract class HmmPlFilter<Response>
 
       final int particleCount =
           ((CountedDataDistribution) target).getCount(particle);
-      int i = 0;
 
       final double particlePriorLogLik =
           target.getLogFraction(particle);
-      for (final ComputableDistribution<Response> f : particle
-          .getHmm().getEmissionFunctions()) {
+
+      for (int i = 0; i < particle.getHmm().getNumStates(); i++) {
 
         final HmmTransitionState<Response> transState =
-            new HmmTransitionState<Response>(particle, i,
-                data.getTime());
+            this.propagate(particle, i, data);
 
         final double transStateLogLik =
             this.updater.computeLogLikelihood(transState, data)
@@ -188,19 +270,15 @@ public abstract class HmmPlFilter<Response>
         if (particleCount - 1 > 0) {
           particleSupport.addAll(Collections.nCopies(
               particleCount - 1, transState.clone()));
-          //            for (int k = 0; k < particleCount-1; k++) { 
-          //              particleSupport.add(transState.clone());
-          //            }
         }
 
         particleTotalLogLikelihood =
             LogMath2.add(particleTotalLogLikelihood, transStateLogLik
                 + Math.log(particleCount));
-        i++;
       }
     }
 
-    final boolean wasWaterFillingApplied;
+    final ResampleType resampleType;
     final CountedDataDistribution<HmmTransitionState<Response>> resampledParticles;
     if (this.resampleOnly) {
       resampledParticles = new CountedDataDistribution<>(true);
@@ -208,8 +286,8 @@ public abstract class HmmPlFilter<Response>
           .sampleMultipleLogScale(
               SamplingUtils.accumulate(logLikelihoods),
               particleTotalLogLikelihood, particleSupport,
-              this.random, this.numParticles, true));
-      wasWaterFillingApplied = false;
+              this.random, this.numParticles));
+      resampleType = ResampleType.REPLACEMENT;
     } else {
       /*
        * Water-filling resample, for a smoothed predictive set
@@ -219,9 +297,11 @@ public abstract class HmmPlFilter<Response>
               Doubles.toArray(logLikelihoods),
               particleTotalLogLikelihood, particleSupport,
               this.random, this.numParticles);
-      wasWaterFillingApplied =
+      resampleType = 
           ((WFCountedDataDistribution) resampledParticles)
-              .wasWaterFillingApplied();
+              .wasWaterFillingApplied() ?
+                  ResampleType.WATER_FILLING:
+                    ResampleType.NO_REPLACEMENT;
     }
 
     /*
@@ -233,7 +313,7 @@ public abstract class HmmPlFilter<Response>
         .asMap().entrySet()) {
       final HmmTransitionState<Response> updatedEntry =
           this.updater.update(entry.getKey());
-      updatedEntry.setWasWaterFillingApplied(wasWaterFillingApplied);
+      updatedEntry.setResampleType(resampleType);
       updatedEntry.setStateLogWeight(entry.getValue().doubleValue());
       updatedDist.set(updatedEntry, entry.getValue().doubleValue(),
           ((MutableDoubleCount) entry.getValue()).count);
@@ -247,90 +327,7 @@ public abstract class HmmPlFilter<Response>
         .getTotalCount() == this.numParticles);
   }
 
-  /**
-   * Expands the forward probabilities until numParticles paths are reached,
-   * then returns the resulting weighed sample path.
-   * 
-   * @param hmm
-   * @param observations
-   * @param numParticles
-   * @return
-   */
-  public static <T> TreeSet<HmmTransitionState<T>>
-      expandForwardProbabilities(final HiddenMarkovModel<T> hmm,
-        List<T> observations) {
-
-    final ExposedHmm<T> eHmm = new ExposedHmm<T>(hmm);
-
-    /*
-     * Compute Baum-Welch smoothed distribution
-     */
-    final ArrayList<Vector> obsLikelihoodSequence =
-        eHmm.computeObservationLikelihoods(observations);
-    final ArrayList<WeightedValue<Vector>> forwardProbabilities =
-        eHmm.computeForwardProbabilities(obsLikelihoodSequence, true);
-
-    final List<Vector> jointProbs = Lists.newArrayList();
-    for (int i = 0; i < forwardProbabilities.size() - 1; i++) {
-      final WeightedValue<Vector> input = forwardProbabilities.get(i);
-      final Vector prod =
-          hmm.getTransitionProbability().times(input.getValue());
-      jointProbs.add(prod.scale(1d / prod.norm1()));
-    }
-    jointProbs
-        .add(Iterables.getLast(forwardProbabilities).getValue());
-
-    final Integer[] states = new Integer[hmm.getNumStates()];
-    for (int i = 0; i < hmm.getNumStates(); i++) {
-      states[i] = i;
-    }
-    final ICombinatoricsVector<Integer> initialVector =
-        Factory.createVector(states);
-    final Generator<Integer> gen =
-        Factory.createPermutationWithRepetitionGenerator(
-            initialVector, observations.size());
-
-    /*
-     * Iterate through possible state permutations and find their
-     * log likelihoods via the Baum-Welch results above.
-     */
-    final TreeSet<HmmTransitionState<T>> orderedDistribution =
-        Sets.newTreeSet(new Comparator<HmmTransitionState<T>>() {
-          @Override
-          public int compare(HmmTransitionState<T> o1,
-            HmmTransitionState<T> o2) {
-            final int compVal =
-                Double.compare(o1.getStateLogWeight(),
-                    o2.getStateLogWeight());
-            return compVal == 0 ? 1 : compVal;
-          }
-        });
-    for (final ICombinatoricsVector<Integer> combination : gen) {
-
-      HmmTransitionState<T> currentState = null;
-      double logWeightOfState = 0d;
-      for (int i = 0; i < combination.getSize(); i++) {
-        final Vector smoothedProbsAtTime =
-            Iterables.get(jointProbs, i);
-        final int stateAtTime = combination.getVector().get(i);
-        // TODO assuming it's normalized, is that true?
-        final double logWeightAtTime =
-            Math.log(smoothedProbsAtTime.getElement(stateAtTime));
-
-        logWeightOfState += logWeightAtTime;
-        if (currentState == null) {
-          currentState =
-              new HmmTransitionState<T>(hmm, stateAtTime, i);
-        } else {
-          currentState =
-              new HmmTransitionState<T>(currentState, stateAtTime, i);
-        }
-        currentState.setStateLogWeight(logWeightOfState);
-      }
-      orderedDistribution.add(currentState);
-    }
-
-    return orderedDistribution;
-  }
+  protected abstract HmmTransitionState<Response> propagate(
+      HmmTransitionState<Response> particle, int i, ObservedValue<Response> data);
 
 }

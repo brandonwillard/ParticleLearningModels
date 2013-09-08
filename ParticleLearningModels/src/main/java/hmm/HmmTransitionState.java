@@ -2,6 +2,7 @@ package hmm;
 
 import java.util.List;
 
+import utils.ObservedValue;
 import utils.WrappedWeightedValue;
 
 import com.google.common.collect.Iterables;
@@ -19,32 +20,46 @@ import gov.sandia.cognition.util.WeightedValue;
  * 
  * @author bwillard
  *
- * @param <T>
+ * @param <ResponseType>
  */
-public class HmmTransitionState<T> extends AbstractCloneableSerializable {
+public class HmmTransitionState<ResponseType> extends AbstractCloneableSerializable {
   
-  private List<WeightedValue<Integer>> stateHistory;
-  private HiddenMarkovModel<T> hmm;
-  private Integer state;
-  private Double stateLogWeight = null;
-  private long time;
+  public static enum ResampleType {
+    NONE ("none"), 
+    WATER_FILLING ("water-filling"), 
+    NO_REPLACEMENT ("no-replacement"),
+    REPLACEMENT ("replacement");
 
-  public long getTime() {
-    return time;
+    private final String name;
+
+    private ResampleType(String name) {
+      this.name = name;
+    }
+
+    public boolean equalsName(String otherName){
+      return (otherName == null)? false : name.equals(otherName);
+    }
+
+    public String toString(){
+       return name;
+    }
   }
 
-  public void setTime(long time) {
-    this.time = time;
+  protected List<WeightedValue<Integer>> stateHistory;
+  protected HiddenMarkovModel<ResponseType> hmm;
+  protected Integer state;
+  protected Double stateLogWeight = null;
+  protected ObservedValue<ResponseType> obs;
+  protected HmmTransitionState<ResponseType> prevState = null;
+  protected ResampleType resampleType = ResampleType.NONE;
+
+  public long getTime() {
+    return obs.getTime();
   }
 
   public Double getStateLogWeight() {
     return stateLogWeight;
   }
-
-  private HmmTransitionState<T> prevState = null;
-
-  private boolean wasWaterFillingApplied = false;
-
 
   public void setStateLogWeight(Double stateLogWeight) {
     this.stateLogWeight = stateLogWeight;
@@ -54,41 +69,50 @@ public class HmmTransitionState<T> extends AbstractCloneableSerializable {
     return stateHistory;
   }
 
-  public HiddenMarkovModel<T> getHmm() {
+  public HiddenMarkovModel<ResponseType> getHmm() {
     return hmm;
   }
 
   @Override
-  public HmmTransitionState<T> clone() {
-    HmmTransitionState<T> clone = (HmmTransitionState<T>) super.clone();
+  public HmmTransitionState<ResponseType> clone() {
+    HmmTransitionState<ResponseType> clone = (HmmTransitionState<ResponseType>) super.clone();
     clone.state = new Integer(this.state);
     clone.hmm = this.hmm;
+    clone.resampleType = this.resampleType;
+    clone.prevState = this.prevState;
     clone.stateHistory = this.stateHistory;
     clone.stateLogWeight = this.stateLogWeight != null ? new Double(this.stateLogWeight) : null;
-    clone.time = this.time;
+    clone.obs = this.obs;
     return clone;
   }
 
   @Override
   public String toString() {
-    return "HMMTransitionState[t=" + this.time + ","
+    return "HMMTransitionState[t=" + this.obs.getTime() + ","
       + (this.prevState != null ? this.prevState.getState() : "NA") + " -> " 
       + this.state 
       + ", (" + this.stateLogWeight + ")]";
   }
 
-  public HmmTransitionState(HiddenMarkovModel<T> hmm, Integer state, long time) {
-    this.time = time;
+  public HmmTransitionState(HiddenMarkovModel<ResponseType> hmm, Integer state, ObservedValue<ResponseType> data) {
+    this.obs = data;
     this.hmm = hmm;
     this.state = state;
     this.stateHistory = Lists.newArrayList();
   }
 
-  public HmmTransitionState(HmmTransitionState<T> prevState, Integer newState, long time) {
-    this.time = time;
-    this.hmm = prevState.getHmm();
+  public HmmTransitionState(HmmTransitionState<ResponseType> prevState, HiddenMarkovModel<ResponseType> hmm, Integer newState, 
+      ObservedValue<ResponseType> data) {
+    this.obs = data;
+    this.hmm = hmm;
     this.state = newState;
-    this.prevState = prevState;
+    /*
+     * Clone the previous state so that we can safely remove
+     * the reference to its predecessor.
+     */
+    this.prevState = prevState.clone();
+    this.prevState.prevState = null;
+
     this.stateHistory = Lists.newArrayList(prevState.stateHistory);
     this.stateHistory.add(WrappedWeightedValue.create(prevState.state, prevState.stateLogWeight));
   }
@@ -97,53 +121,21 @@ public class HmmTransitionState<T> extends AbstractCloneableSerializable {
     return state;
   }
 
-  public HmmTransitionState<T> getPrevState() {
+  public HmmTransitionState<ResponseType> getPrevState() {
     return this.prevState;
   }
 
   public void
-      setWasWaterFillingApplied(boolean wasWaterFillingApplied) {
-    this.wasWaterFillingApplied = wasWaterFillingApplied;
+      setResampleType(ResampleType rType) {
+    this.resampleType = rType;
   }
 
-  public boolean wasWaterFillingApplied() {
-    return wasWaterFillingApplied;
+  public ResampleType getResampleType() {
+    return this.resampleType;
   }
 
-//  @Override
-//  public int hashCode() {
-//    final int prime = 31;
-//    int result = 1;
-//    result = prime * result + ((hmm == null) ? 0 : hmm.hashCode());
-//    result =
-//        prime * result + ((state == null) ? 0 : state.hashCode());
-//    // TODO something about the last state
-//    return result;
-//  }
-//
-//  @Override
-//  public boolean equals(Object obj) {
-//    if (this == obj)
-//      return true;
-//    if (obj == null)
-//      return false;
-//    if (getClass() != obj.getClass())
-//      return false;
-//    HMMTransitionState other = (HMMTransitionState) obj;
-//    if (hmm == null) {
-//      if (other.hmm != null)
-//        return false;
-//    } else if (!hmm.equals(other.hmm))
-//      return false;
-//    if (state == null) {
-//      if (other.state != null)
-//        return false;
-//    } else if (!state.equals(other.state))
-//      return false;
-//
-//    // TODO something about equality with the last state
-//
-//    return true;
-//  }
+  public ObservedValue<ResponseType> getObservedValue() {
+    return this.obs;
+  }
 
 }

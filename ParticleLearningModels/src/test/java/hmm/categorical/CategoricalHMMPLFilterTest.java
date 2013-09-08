@@ -114,19 +114,19 @@ public class CategoricalHMMPLFilterTest {
 
   @Test
   public void testBaumWelchInitialization1() {
-    DefaultDataDistribution<Double> s1Likelihood = new DefaultDataDistribution<Double>();
-    s1Likelihood.increment(0d, 1d/3d);
-    s1Likelihood.increment(1d, 1d/3d);
+    DefaultDataDistribution<Integer> s1Likelihood = new DefaultDataDistribution<>();
+    s1Likelihood.increment(0, 1d/3d);
+    s1Likelihood.increment(1, 1d/3d);
 
-    DefaultDataDistribution<Double> s2Likelihood = new DefaultDataDistribution<Double>();
-    s2Likelihood.increment(0d, 1d/3d);
-    s2Likelihood.increment(1d, 1d/3d);
+    DefaultDataDistribution<Integer> s2Likelihood = new DefaultDataDistribution<>();
+    s2Likelihood.increment(0, 1d/3d);
+    s2Likelihood.increment(1, 1d/3d);
     
-    List<DefaultDataDistribution<Double>> emissionFunctions = Lists.newArrayList();
+    List<DefaultDataDistribution<Integer>> emissionFunctions = Lists.newArrayList();
     emissionFunctions.add(s1Likelihood);
     emissionFunctions.add(s2Likelihood);
     
-    HiddenMarkovModel<Double> hmm = new HiddenMarkovModel<Double>(
+    HiddenMarkovModel<Integer> hmm = new HiddenMarkovModel<>(
         VectorFactory.getDefault().copyArray(new double[] {1d/2d, 1d/2d}),
         MatrixFactory.getDefault().copyArray(new double[][] {
             // (i,j) j: from, i: to
@@ -134,11 +134,12 @@ public class CategoricalHMMPLFilterTest {
             {1d/3d, 1d/3d}}),
         emissionFunctions);
     
-    TreeSet<HmmTransitionState<Double>> result = CategoricalHmmPlFilter.
-        expandForwardProbabilities(hmm, Lists.newArrayList(0d, 1d));
+    TreeSet<HmmTransitionState<Integer>> result = new CategoricalHmmPlFilter.
+        CategoricalHmmPlUpdater(hmm, new Random()).
+          expandForwardProbabilities(hmm, Lists.newArrayList(0, 1));
     
     assertTrue(result.size() == 4);
-    for (HmmTransitionState<Double> chain : result) {
+    for (HmmTransitionState<Integer> chain : result) {
       System.out.println(chain.getStateHistory());
       System.out.println("\t" + chain);
       assertEquals(Math.log(1d/4d), chain.getStateLogWeight(), 1e-7);
@@ -148,19 +149,19 @@ public class CategoricalHMMPLFilterTest {
   
   @Test
   public void testBaumWelchInitialization2() {
-    DefaultDataDistribution<Double> s1Likelihood = new DefaultDataDistribution<Double>();
-    s1Likelihood.increment(0d, 1d/2d);
-    s1Likelihood.increment(1d, 1d/2d);
+    DefaultDataDistribution<Integer> s1Likelihood = new DefaultDataDistribution<>();
+    s1Likelihood.increment(0, 1d/2d);
+    s1Likelihood.increment(1, 1d/2d);
 
-    DefaultDataDistribution<Double> s2Likelihood = new DefaultDataDistribution<Double>();
-    s2Likelihood.increment(0d, 2d/3d);
-    s2Likelihood.increment(1d, 1d/3d);
+    DefaultDataDistribution<Integer> s2Likelihood = new DefaultDataDistribution<>();
+    s2Likelihood.increment(0, 2d/3d);
+    s2Likelihood.increment(1, 1d/3d);
     
-    List<DefaultDataDistribution<Double>> emissionFunctions = Lists.newArrayList();
+    List<DefaultDataDistribution<Integer>> emissionFunctions = Lists.newArrayList();
     emissionFunctions.add(s1Likelihood);
     emissionFunctions.add(s2Likelihood);
     
-    HiddenMarkovModel<Double> hmm = new HiddenMarkovModel<Double>(
+    HiddenMarkovModel<Integer> hmm = new HiddenMarkovModel<>(
         VectorFactory.getDefault().copyArray(new double[] {1d/2d, 1d/2d}),
         MatrixFactory.getDefault().copyArray(new double[][] {
             // (i,j) j: from, i: to
@@ -168,14 +169,15 @@ public class CategoricalHMMPLFilterTest {
             {1d/10d, 9d/10d}}),
         emissionFunctions);
     
-    ArrayList<Double> observations = Lists.newArrayList(0d, 1d);
-    TreeSet<HmmTransitionState<Double>> result = CategoricalHmmPlFilter.
-        expandForwardProbabilities(hmm, observations);
+    ArrayList<Integer> observations = Lists.newArrayList(0, 1);
+    TreeSet<HmmTransitionState<Integer>> result = new CategoricalHmmPlFilter.
+        CategoricalHmmPlUpdater(hmm, new Random()).
+          expandForwardProbabilities(hmm, observations);
     
     assertTrue(result.size() == Math.pow(hmm.getNumStates(), observations.size()));
     double totalLogLikelihood = Double.NEGATIVE_INFINITY;
     Set<Double> uniqueValues = Sets.newHashSet();
-    for (HmmTransitionState<Double> chain : result) {
+    for (HmmTransitionState<Integer> chain : result) {
       System.out.println(chain.getStateHistory());
       System.out.println("\t" + chain);
       uniqueValues.add(chain.getStateLogWeight());

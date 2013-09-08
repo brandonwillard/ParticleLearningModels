@@ -5,8 +5,10 @@ import gov.sandia.cognition.math.MutableDouble;
 import gov.sandia.cognition.math.RingAccumulator;
 import gov.sandia.cognition.math.matrix.Vector;
 import gov.sandia.cognition.math.matrix.VectorFactory;
+import gov.sandia.cognition.statistics.bayesian.ParticleFilter;
 import gov.sandia.cognition.util.Pair;
 import gov.sandia.cognition.util.WeightedValue;
+import hmm.HmmTransitionState.ResampleType;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -47,16 +49,17 @@ public class HmmResampleComparisonRunner {
    * @throws IOException 
    */
   protected static <T> void waterFillResampleComparison(
-    HmmPlFilter<T> wfFilter, HmmPlFilter<T> rsFilter, HiddenMarkovModel<T> trueHmm, final int N, final int T,
-    final int K, String outputFilename, final Random rng) throws IOException {
+      HmmPlFilter<T> wfFilter, ParticleFilter<ObservedValue<T>, ? extends HmmTransitionState<T>> rsFilter, 
+        HiddenMarkovModel<T> trueHmm, final int N, final int T, 
+        final int K, String outputFilename, final Random rng) throws IOException {
         
         final HiddenMarkovModel<T> hmm = trueHmm;
     
         Pair<List<T>, List<Integer>> sample = SamplingUtils.sampleWithStates(trueHmm, rng, T);
     
         wfFilter.setNumParticles(N);
-        rsFilter.setResampleOnly(false);
-        rsFilter.setResampleOnly(true);
+        wfFilter.setResampleOnly(false);
+
         rsFilter.setNumParticles(N);
     
         List<Vector> forwardResults = hmm.stateBeliefs(sample.getFirst());
@@ -76,7 +79,7 @@ public class HmmResampleComparisonRunner {
         RingAccumulator<MutableDouble> pfRunningRate = new RingAccumulator<MutableDouble>();
     
         CSVWriter writer = new CSVWriter(new FileWriter(outputFilename), ',');
-        String[] header = "rep,t,type,filter,wf.resampled,error".split(",");
+        String[] header = "rep,t,measurement.type,filter.type,resample.type,measurement".split(",");
         writer.writeNext(header);
     
         for (int k = 0; k < K; k++) {
@@ -105,9 +108,11 @@ public class HmmResampleComparisonRunner {
             /*
              * Compute and output RS forward errors
              */
+            ResampleType rsResampleType = rsDistribution.getMaxValueKey().getResampleType();
             Vector rsStateProbDiffs = computeStateDiffs(i, hmm.getNumStates(), rsDistribution, forwardResults);
-            String[] rsLine = {Integer.toString(k), Integer.toString(i), "p(x_t=0|y^t)", "resample",
-               "FALSE", Double.toString(rsStateProbDiffs.getElement(0))};
+            String[] rsLine = {Integer.toString(k), Integer.toString(i), "p(x_t=0|y^t)", 
+               rsResampleType.toString(),
+               Double.toString(rsStateProbDiffs.getElement(0))};
             writer.writeNext(rsLine);
             log.info("rsStateProbDiffs=" + rsStateProbDiffs);
     
@@ -116,17 +121,16 @@ public class HmmResampleComparisonRunner {
               wfFilter.update(wfDistribution, obsState);
         
               RingAccumulator<MutableDouble> pfAtTRate = new RingAccumulator<MutableDouble>();
-              boolean wasWaterFilled = false;
               for (HmmTransitionState<T> state : wfDistribution.getDomain()) {
-                wasWaterFilled = state.wasWaterFillingApplied();
                 final double err = (x == state.getState()) ? wfDistribution.getFraction(state) : 0d;
                 pfAtTRate.accumulate(new MutableDouble(err));
               }
               pfRunningRate.accumulate(new MutableDouble(pfAtTRate.getSum()));
         
+              ResampleType wfResampleType = wfDistribution.getMaxValueKey().getResampleType();
               Vector wfStateProbDiffs = computeStateDiffs(i, hmm.getNumStates(), wfDistribution, forwardResults);
               String[] wfLine = {Integer.toString(k), Integer.toString(i), "p(x_t=0|y^t)", "water-filling",
-                 (wasWaterFilled ? "TRUE" : "FALSE"),
+                 wfResampleType.toString(),
                  Double.toString(wfStateProbDiffs.getElement(0))};
               writer.writeNext(wfLine);
               log.info("wfStateProbDiffs=" + wfStateProbDiffs);
@@ -205,11 +209,12 @@ public class HmmResampleComparisonRunner {
               rsStateProbDiffs.setElement(j, gammas.get(t).getElement(j) - rsStateProb);
             }
             String[] wfLine = {Integer.toString(k), Integer.toString(t), "p(x_t=0|y^T)", "water-filling",
-                (wfDistribution.getMaxValueKey().wasWaterFillingApplied() ? "TRUE" : "FALSE"), 
+                  wfDistribution.getMaxValueKey().getResampleType().toString(), 
                   Double.toString(wfStateProbDiffs.getElement(0))};
             writer.writeNext(wfLine);
             String[] rsLine = {Integer.toString(k), Integer.toString(t), "p(x_t=0|y^T)", "resample", 
-                "FALSE", Double.toString(rsStateProbDiffs.getElement(0))};
+                rsDistribution.getMaxValueKey().getResampleType().toString(), 
+                Double.toString(rsStateProbDiffs.getElement(0))};
             writer.writeNext(rsLine);
           }
         }

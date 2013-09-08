@@ -38,7 +38,7 @@ import hmm.HmmTransitionState;
 import hmm.HmmPlFilter;
 import hmm.HmmResampleComparisonRunner;
 import hmm.HmmPlFilter.HmmPlUpdater;
-import hmm.gaussian.GaussianHmmPlFilter;
+import hmm.gaussian.GaussianArHmmPlFilter;
 
 public class CategoricalHmmRunner extends HmmResampleComparisonRunner {
 

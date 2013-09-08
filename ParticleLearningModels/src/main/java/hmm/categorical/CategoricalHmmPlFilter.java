@@ -23,11 +23,11 @@ import com.google.common.collect.Iterables;
  */
 public class CategoricalHmmPlFilter extends HmmPlFilter<Integer> {
 
-  public class CategoricalHMMPLUpdater extends HmmPlUpdater<Integer> {
+  public static class CategoricalHmmPlUpdater extends HmmPlUpdater<Integer> {
 
     private static final long serialVersionUID = 7961478795131339665L;
 
-    public CategoricalHMMPLUpdater(HiddenMarkovModel<Integer> hmm,
+    public CategoricalHmmPlUpdater(HiddenMarkovModel<Integer> hmm,
       Random rng) {
       super(hmm, rng);
     }
@@ -40,7 +40,7 @@ public class CategoricalHmmPlFilter extends HmmPlFilter<Integer> {
           Iterables.get(particle.getHmm().getEmissionFunctions(),
               particle.getState());
       return f.getProbabilityFunction().logEvaluate(
-          observation.getObservedState());
+          observation.getObservedValue());
     }
 
     @Override
@@ -58,7 +58,7 @@ public class CategoricalHmmPlFilter extends HmmPlFilter<Integer> {
   public CategoricalHmmPlFilter(HiddenMarkovModel<Integer> hmm,
     Random rng, boolean resampleOnly) {
     super(resampleOnly);
-    this.setUpdater(new CategoricalHMMPLUpdater(hmm, rng));
+    this.setUpdater(new CategoricalHmmPlUpdater(hmm, rng));
     this.setRandom(rng);
     this.resampleOnly = resampleOnly;
   }
@@ -69,5 +69,14 @@ public class CategoricalHmmPlFilter extends HmmPlFilter<Integer> {
     ObservedValue<Integer> data) {
     super.update(target, data);
   }
+
+  @Override
+  protected HmmTransitionState<Integer> propagate(
+      HmmTransitionState<Integer> particle, int newClassId, ObservedValue<Integer> data) {
+    return new HmmTransitionState<Integer>(particle, particle.getHmm(), newClassId,
+                data);
+  }
+
+
 
 }

@@ -1,6 +1,6 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>ParticleLearningModels</groupId>
+  <groupId>org.bitbucket.brandonwillard</groupId>
   <artifactId>ParticleLearningModels</artifactId>
 	<packaging>jar</packaging>
   <version>0.0.1-SNAPSHOT</version>
@@ -11,8 +11,27 @@
     <url>http://bitbucket.org/brandonwillard/particlelearningmodels</url>
   </scm>
 
+  <distributionManagement>
+    <repository>
+      <id>brandonwillard-mvn-repo</id>
+      <name>brandonwillard maven repository</name>
+      <url>git:releases://git@bitbucket.org:brandonwillard/mvn-repo.git</url>
+    </repository>
+    <snapshotRepository>
+      <id>your-snapshot-repo-id</id>
+      <name>Your Snapshot Repo Name</name>
+      <url>git:snapshots://git@bitbucket.org:brandonwillard/mvn-repo.git</url>
+    </snapshotRepository>
+  </distributionManagement>
+
   <build>
-<!--     <sourceDirectory>src</sourceDirectory> -->
+    <extensions>
+      <extension>
+        <groupId>ar.com.synergian</groupId>
+          <artifactId>wagon-git</artifactId>
+          <version>0.2.0</version>
+      </extension>
+    </extensions>
     <plugins>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
@@ -24,9 +43,16 @@
       </plugin>
     </plugins>
   </build>
-  
+
+  <pluginRepositories>
+    <pluginRepository>
+      <id>synergian-repo</id>
+      <url>https://raw.github.com/synergian/wagon-git/releases</url>
+    </pluginRepository>
+  </pluginRepositories>
+
   <repositories>  
-      <repository>
+    <repository>
       <id>sonatype-nexus-releases</id>
       <name>Sonatype Nexus Releases</name>
       <url>https://oss.sonatype.org/content/repositories/snapshots</url>
@@ -34,10 +60,17 @@
         <enabled>true</enabled>
       </snapshots>
     </repository>
+    <repository>
+      <id>brandonwillard-mvn-repo</id>
+      <url>https://api.bitbucket.org/1.0/repositories/brandonwillard/mvn-repo/raw/master</url>
+    </repository>
+    <repository>
+      <id>wagon-git</id>
+      <url>git:releases://git@github.com:synergian/wagon-git.git</url>
+    </repository>
   </repositories>  
   
   <dependencies>
-
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-log4j12</artifactId>
@@ -49,27 +82,16 @@
       <version>4.8.1</version>
       <scope>test</scope>
     </dependency> 
-<!--     <dependency> -->
-<!--       <groupId>ca.umontreal.iro</groupId> -->
-<!--       <artifactId>ssj</artifactId> -->
-<!--       <version>2.5</version> -->
-<!--     </dependency>    -->
   	<dependency>
   		<groupId>gov.sandia.foundry</groupId>
   		<artifactId>cognitive-foundry</artifactId>
   		<version>3.3.3</version>
   	</dependency>
-<!--   	<dependency> -->
-<!--   		<groupId>org.apache.mahout</groupId> -->
-<!--   		<artifactId>mahout</artifactId> -->
-<!--   		<version>0.7</version> -->
-<!--   		<type>pom</type> -->
-<!--   	</dependency> -->
-<!--   	<dependency> -->
-<!--   		<groupId>com.google.collections</groupId> -->
-<!--   		<artifactId>google-collections</artifactId> -->
-<!--   		<version>1.0</version> -->
-<!--   	</dependency> -->
+  	<dependency>
+  		<groupId>org.bitbucket.brandonwillard</groupId>
+  		<artifactId>StatsLibExtensions</artifactId>
+  		<version>0.0.1-SNAPSHOT</version>
+  	</dependency>
     <dependency>
       <groupId>com.googlecode.combinatoricslib</groupId>
       <artifactId>combinatoricslib</artifactId>

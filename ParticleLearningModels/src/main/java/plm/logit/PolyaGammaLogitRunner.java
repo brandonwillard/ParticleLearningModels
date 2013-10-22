@@ -12,6 +12,7 @@ import java.util.Random;
 
 import com.google.common.collect.Lists;
 import com.statslibextensions.statistics.distribution.ScaledInverseGammaCovDistribution;
+import com.statslibextensions.util.ObservedValue;
 
 /**
  * This class produces draws from a multivariate Gaussian mixture model and fits them with a
@@ -43,7 +44,7 @@ public class PolyaGammaLogitRunner {
 //            new double[] {100d, -50d, 34d, 0d, 1e-3d}), MatrixFactory.getDenseDefault()
 //            .createDiagonal(
 //                VectorFactory.getDenseDefault().copyArray(new double[] {100d, 10d, 500d, 30d, 1d})));
-    final List<ResponseWithData> observations = Lists.newArrayList();
+    final List<ObservedValue> observations = Lists.newArrayList();
     for (int i = 0; i < 10000; i++) {
 //      final Vector dataSample = dataGeneratingDist.sample(rng);
       final Vector dataSample = VectorFactory.getDenseDefault().copyArray(new 
@@ -52,7 +53,7 @@ public class PolyaGammaLogitRunner {
       final double pi = 1d / (1d + phi);
       final Vector y = VectorFactory.getDenseDefault().createVector1D(rng.nextDouble() <= pi ? 1d : 0d);
       final Matrix dataDesign = MatrixFactory.getDenseDefault().copyRowVectors(dataSample);
-      observations.add(new ResponseWithData(y, dataDesign));
+      observations.add(new ObservedValue(i, y, dataDesign));
     }
 
     /*
@@ -79,7 +80,7 @@ public class PolyaGammaLogitRunner {
 
     final DataDistribution<PolyaGammaLogitDistribution> currentMixtureDistribution =
         plFilter.createInitialLearnedObject();
-    for (final ResponseWithData observation : observations) {
+    for (final ObservedValue observation : observations) {
       System.out.println("obs:" + observation);
       plFilter.update(currentMixtureDistribution, observation);
 

@@ -146,7 +146,7 @@ public class GaussianArHmmRunner extends HmmResampleComparisonRunner {
         final double x = simulation.get(i).getClassId();
         final Double y = simulation.get(i).getObservedValue().getElement(0);
         // lame hack need until I refactor to use DlmHiddenMarkovModel in the filters
-        final ObservedValue<Double> obsState = new SimHmmObservedValue<Double, Double>(i, 
+        final ObservedValue<Double, Void> obsState = new SimHmmObservedValue<Double, Double>(i, 
            (int)x , simulation.get(i).getState().getElement(0), y);
 
         if (i > 0) {

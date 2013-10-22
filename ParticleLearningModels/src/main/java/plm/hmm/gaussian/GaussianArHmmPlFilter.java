@@ -41,7 +41,7 @@ public class GaussianArHmmPlFilter extends HmmPlFilter<StandardHMM<Double>, Gaus
     @Override
     public double computeLogLikelihood(
       GaussianArTransitionState particle,
-      ObservedValue<Double> observation) {
+      ObservedValue<Double,Void> observation) {
 
       final GaussianArTransitionState transState = (GaussianArTransitionState) particle;
       final double priorPredMean = transState.getPriorPredSuffStats().getMean();
@@ -99,7 +99,7 @@ public class GaussianArHmmPlFilter extends HmmPlFilter<StandardHMM<Double>, Gaus
                 this.rng, this.priorHmm.getClassMarginalProbabilities());
         final GaussianArTransitionState particle =
             new GaussianArTransitionState(this.priorHmm, sampledState,
-                new ObservedValue<Double>(0, null) , this.prior);
+                new ObservedValue<Double,Void>(0, null) , this.prior);
 
         final double logWeight = -Math.log(numParticles);
         particle.setStateLogWeight(logWeight);
@@ -150,7 +150,7 @@ public class GaussianArHmmPlFilter extends HmmPlFilter<StandardHMM<Double>, Gaus
 
   @Override
   protected GaussianArTransitionState propagate(
-      GaussianArTransitionState prevState, int predClass, ObservedValue<Double> data) {
+      GaussianArTransitionState prevState, int predClass, ObservedValue<Double,Void> data) {
     /*
      * Perform the filtering step
      */

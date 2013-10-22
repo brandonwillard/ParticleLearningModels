@@ -15,13 +15,13 @@ public class DlmTransitionState extends HmmTransitionState<Vector, DlmHiddenMark
   public DlmTransitionState(
       DlmTransitionState prevState,
       DlmHiddenMarkovModel hmm, Integer classId,
-      ObservedValue<Vector> data, MultivariateGaussian state) {
+      ObservedValue<Vector,Void> data, MultivariateGaussian state) {
     super(prevState, hmm, classId, data);
     this.state = state;
   }
 
   public DlmTransitionState(DlmHiddenMarkovModel hmm, Integer classId,
-      ObservedValue<Vector> data, MultivariateGaussian state) {
+      ObservedValue<Vector,Void> data, MultivariateGaussian state) {
     super(hmm, classId, data);
     this.state = state;
   }

@@ -21,11 +21,6 @@ import com.statslibextensions.util.ExtStatisticsUtils;
  * A binary logit model with linear gaussian regression log-odds and Lasso shrinkage.
  * 
  * 
- * The static methods are a port of the sampling method for a Polya-Gamma distribution in the
- * BayesLogit R package.
- * 
- * TODO extend Distribution class, add PDF and moments.
- * 
  * @author bwillard
  * 
  */

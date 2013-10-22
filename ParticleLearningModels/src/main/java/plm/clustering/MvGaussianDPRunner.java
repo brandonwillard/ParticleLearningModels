@@ -111,7 +111,7 @@ public class MvGaussianDPRunner {
        */
       final UnivariateGaussian.SufficientStatistic rmseSuffStat =
           new UnivariateGaussian.SufficientStatistic();
-      final RingAccumulator<MutableDouble> countSummary = new RingAccumulator<>();
+      final RingAccumulator<MutableDouble> countSummary = new RingAccumulator<MutableDouble>();
 
       for (final MvGaussianDPDistribution mixtureDist : currentMixtureDistribution.getDomain()) {
         rmseSuffStat.update(observation.minus(mixtureDist.getMean()).norm2());

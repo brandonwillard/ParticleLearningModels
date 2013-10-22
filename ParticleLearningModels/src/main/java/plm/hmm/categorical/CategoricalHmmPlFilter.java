@@ -57,7 +57,7 @@ public class CategoricalHmmPlFilter extends HmmPlFilter<StandardHMM<Integer>, Hm
     public DataDistribution<HmmTransitionState<Integer, StandardHMM<Integer>>>
         createInitialParticles(int numParticles) {
       final CountedDataDistribution<HmmTransitionState<Integer, StandardHMM<Integer>>> initialParticles =
-          new CountedDataDistribution<>(numParticles, true);
+          new CountedDataDistribution<HmmTransitionState<Integer, StandardHMM<Integer>>>(numParticles, true);
       for (int i = 0; i < numParticles; i++) {
         final int sampledState =
             DiscreteSamplingUtil.sampleIndexFromProbabilities(
@@ -193,11 +193,11 @@ public class CategoricalHmmPlFilter extends HmmPlFilter<StandardHMM<Integer>, Hm
           if (currentState == null) {
             currentState =
                 new HmmTransitionState<T, StandardHMM<T>>(hmm, stateAtTime, 
-                    new ObservedValue<>(i, observations.get(i)));
+                    new ObservedValue<T, Void>(i, observations.get(i)));
           } else {
             currentState =
                 new HmmTransitionState<T, StandardHMM<T>>(currentState, currentState.getHmm(), stateAtTime, 
-                    new ObservedValue<>(i, observations.get(i)));
+                    new ObservedValue<T, Void>(i, observations.get(i)));
           }
           currentState.setStateLogWeight(logWeightOfState);
         }
@@ -210,7 +210,7 @@ public class CategoricalHmmPlFilter extends HmmPlFilter<StandardHMM<Integer>, Hm
     @Override
     public double computeLogLikelihood(
       HmmTransitionState<Integer, StandardHMM<Integer>> particle,
-      ObservedValue<Integer> observation) {
+      ObservedValue<Integer, Void> observation) {
       final ComputableDistribution<Integer> f =
           particle.getHmm().getEmissionFunction(null, particle.getClassId());
       return f.getProbabilityFunction().logEvaluate(
@@ -240,13 +240,13 @@ public class CategoricalHmmPlFilter extends HmmPlFilter<StandardHMM<Integer>, Hm
   @Override
   public void update(
     DataDistribution<HmmTransitionState<Integer, StandardHMM<Integer>>> target,
-    ObservedValue<Integer> data) {
+    ObservedValue<Integer, Void> data) {
     super.update(target, data);
   }
 
   @Override
   protected HmmTransitionState<Integer, StandardHMM<Integer>> propagate(
-      HmmTransitionState<Integer, StandardHMM<Integer>> particle, int newClassId, ObservedValue<Integer> data) {
+      HmmTransitionState<Integer, StandardHMM<Integer>> particle, int newClassId, ObservedValue<Integer, Void> data) {
     return new HmmTransitionState<Integer, StandardHMM<Integer>>(particle, particle.getHmm(), newClassId,
                 data);
   }

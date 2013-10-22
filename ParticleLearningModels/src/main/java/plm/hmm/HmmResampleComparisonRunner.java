@@ -51,7 +51,7 @@ public class HmmResampleComparisonRunner {
    * @throws IOException 
    */
   protected static <H extends StandardHMM<T>, P extends HmmTransitionState<T, H>, T> void waterFillResampleComparison(
-      HmmPlFilter<H, P, T> wfFilter, ParticleFilter<ObservedValue<T>, P> rsFilter, 
+      HmmPlFilter<H, P, T> wfFilter, ParticleFilter<ObservedValue<T, Void>, P> rsFilter, 
         H trueHmm, final int N, final int T, 
         final int K, String outputFilename, final Random rng) throws IOException {
         
@@ -105,7 +105,7 @@ public class HmmResampleComparisonRunner {
             viterbiRate.accumulate(new MutableDouble((x == viterbiResults.get(i) ? 1d : 0d)));
     
             final T y = samples.get(i).getObservedValue();
-            final ObservedValue<T> obsState = new ObservedValue<T>(i, y);
+            final ObservedValue<T, Void> obsState = new ObservedValue<T, Void>(i, y);
     
             rsFilter.update(rsDistribution, obsState);
     
@@ -172,8 +172,8 @@ public class HmmResampleComparisonRunner {
            */
           for (int t = 0; t < T; t++) {
     
-            CountedDataDistribution<Integer> wfStateSums = new CountedDataDistribution<>(true);
-            CountedDataDistribution<Integer> rsStateSums = new CountedDataDistribution<>(true);
+            CountedDataDistribution<Integer> wfStateSums = new CountedDataDistribution<Integer>(true);
+            CountedDataDistribution<Integer> rsStateSums = new CountedDataDistribution<Integer>(true);
             if (t < T - 1) {
               for (HmmTransitionState<T, H> state : wfDistribution.getDomain()) {
                 final WeightedValue<Integer> weighedState = state.getStateHistory().get(t);
@@ -228,7 +228,7 @@ public class HmmResampleComparisonRunner {
   private static <H extends StandardHMM<T>, P extends HmmTransitionState<T, H>, T> Vector computeStateDiffs(int t,
     int S, CountedDataDistribution<P> wfDistribution, List<Vector> trueDists) {
     
-      CountedDataDistribution<Integer> stateSums = new CountedDataDistribution<>(true);
+      CountedDataDistribution<Integer> stateSums = new CountedDataDistribution<Integer>(true);
       for (P state : wfDistribution.getDomain()) {
         stateSums.adjust(state.getClassId(), wfDistribution.getLogFraction(state), wfDistribution.getCount(state));
       }

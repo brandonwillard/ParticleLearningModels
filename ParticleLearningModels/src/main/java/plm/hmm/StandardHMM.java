@@ -30,7 +30,7 @@ public class StandardHMM<ResponseType> extends AbstractCloneableSerializable imp
   protected ExposedHmm<ResponseType> hmm;
 
   public StandardHMM(Vector initialProbs, Matrix transProbs, List<? extends ComputableDistribution<ResponseType>> emissions) {
-    hmm = new ExposedHmm<ResponseType>(new HiddenMarkovModel<>(initialProbs, transProbs, emissions));
+    hmm = new ExposedHmm<ResponseType>(new HiddenMarkovModel<ResponseType>(initialProbs, transProbs, emissions));
   }
 
   @Override

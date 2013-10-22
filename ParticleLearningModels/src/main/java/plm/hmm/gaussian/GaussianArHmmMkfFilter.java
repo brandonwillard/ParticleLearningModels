@@ -37,11 +37,11 @@ import com.statslibextensions.util.ObservedValue;
  */
 public class GaussianArHmmMkfFilter
     extends
-    AbstractParticleFilter<ObservedValue<Double>, GaussianArTransitionState> {
+    AbstractParticleFilter<ObservedValue<Double,Void>, GaussianArTransitionState> {
 
   public static class GaussianArHmmMkfUpdater extends
       AbstractCloneableSerializable implements
-      Updater<ObservedValue<Double>, GaussianArTransitionState> {
+      Updater<ObservedValue<Double,Void>, GaussianArTransitionState> {
 
     private static final long serialVersionUID = 1675005722404209890L;
 
@@ -58,7 +58,7 @@ public class GaussianArHmmMkfFilter
     @Override
     public double computeLogLikelihood(
       GaussianArTransitionState particle,
-      ObservedValue<Double> observation) {
+      ObservedValue<Double,Void> observation) {
       return Double.NaN;
     }
 
@@ -66,14 +66,14 @@ public class GaussianArHmmMkfFilter
     public DataDistribution<GaussianArTransitionState>
         createInitialParticles(int numParticles) {
       final CountedDataDistribution<GaussianArTransitionState> initialParticles =
-          new CountedDataDistribution<>(numParticles, true);
+          new CountedDataDistribution<GaussianArTransitionState>(numParticles, true);
       for (int i = 0; i < numParticles; i++) {
         final int sampledState =
             DiscreteSamplingUtil.sampleIndexFromProbabilities(
                 this.rng, this.hmm.getClassMarginalProbabilities());
         final GaussianArTransitionState particle =
             new GaussianArTransitionState(this.hmm, sampledState,
-                new ObservedValue<Double>(-1l, null), prior);
+                new ObservedValue<Double,Void>(-1l, null), prior);
 
         final double logWeight = -Math.log(numParticles);
         particle.setStateLogWeight(logWeight);
@@ -109,9 +109,9 @@ public class GaussianArHmmMkfFilter
   @Override
   public void update(
     DataDistribution<GaussianArTransitionState> target,
-    ObservedValue<Double> data) {
+    ObservedValue<Double,Void> data) {
 
-    final CountedDataDistribution<GaussianArTransitionState> propogatedParticles = new CountedDataDistribution<>(true);
+    final CountedDataDistribution<GaussianArTransitionState> propogatedParticles = new CountedDataDistribution<GaussianArTransitionState>(true);
     for (final GaussianArTransitionState particle : target.getDomain()) {
       final StandardHMM<Double> hmm = particle.getHmm();
 //      final int particleCount =
@@ -120,7 +120,7 @@ public class GaussianArHmmMkfFilter
       double particleLogLik = Double.NEGATIVE_INFINITY;
 
       final StandardHMM<Double> newHmm = hmm;
-      final CountedDataDistribution<GaussianArTransitionState> transitionDist = new CountedDataDistribution<>(true);
+      final CountedDataDistribution<GaussianArTransitionState> transitionDist = new CountedDataDistribution<GaussianArTransitionState>(true);
       for (int i = 0; i < hmm.getNumStates(); i++) {
 
         /*
@@ -171,7 +171,7 @@ public class GaussianArHmmMkfFilter
     final ResampleType resampleType = resample ? ResampleType.REPLACEMENT : ResampleType.NONE;
     CountedDataDistribution<GaussianArTransitionState> resampledDist;
     if (resample) {
-      resampledDist = new CountedDataDistribution<>(true);
+      resampledDist = new CountedDataDistribution<GaussianArTransitionState>(true);
       resampledDist.incrementAll(propogatedParticles.sample(random, this.numParticles));
     } else {
       resampledDist = propogatedParticles;

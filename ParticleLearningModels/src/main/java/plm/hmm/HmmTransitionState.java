@@ -46,7 +46,7 @@ public class HmmTransitionState<ResponseType, HmmType extends GenericHMM<Respons
   protected HmmType hmm;
   protected Integer classId;
   protected Double stateLogWeight = null;
-  protected ObservedValue<ResponseType> obs;
+  protected ObservedValue<ResponseType, Void> obs;
   protected HmmTransitionState<ResponseType, HmmType> prevState = null;
   protected ResampleType resampleType = ResampleType.NONE;
 
@@ -92,7 +92,7 @@ public class HmmTransitionState<ResponseType, HmmType extends GenericHMM<Respons
   }
 
   public HmmTransitionState(HmmType hmm, 
-      Integer state, ObservedValue<ResponseType> data) {
+      Integer state, ObservedValue<ResponseType, Void> data) {
     this.obs = data;
     this.hmm = hmm;
     this.classId = state;
@@ -101,7 +101,7 @@ public class HmmTransitionState<ResponseType, HmmType extends GenericHMM<Respons
 
   public HmmTransitionState(HmmTransitionState<ResponseType, HmmType> prevState, 
       HmmType hmm, Integer newState, 
-      ObservedValue<ResponseType> data) {
+      ObservedValue<ResponseType, Void> data) {
     this.obs = data;
     this.hmm = hmm;
     this.classId = newState;
@@ -133,7 +133,7 @@ public class HmmTransitionState<ResponseType, HmmType extends GenericHMM<Respons
     return this.resampleType;
   }
 
-  public ObservedValue<ResponseType> getObservation() {
+  public ObservedValue<ResponseType, Void> getObservation() {
     return this.obs;
   }
 

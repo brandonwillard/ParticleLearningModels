@@ -24,7 +24,7 @@ public class GaussianArHpTransitionState extends DlmTransitionState {
   public GaussianArHpTransitionState(
       GaussianArHpTransitionState prevState,
       DlmHiddenMarkovModel hmm, Integer classId,
-      ObservedValue<Vector> data, MultivariateGaussian state, Vector stateSample, 
+      ObservedValue<Vector,Void> data, MultivariateGaussian state, Vector stateSample, 
       InverseGammaDistribution scaleSS, List<MultivariateGaussian> systemSS,
       double scaleSample) {
     super(prevState, hmm, classId, data, state);
@@ -35,7 +35,7 @@ public class GaussianArHpTransitionState extends DlmTransitionState {
   }
 
   public GaussianArHpTransitionState(DlmHiddenMarkovModel hmm, Integer classId,
-      ObservedValue<Vector> data, MultivariateGaussian state, Vector stateSample,
+      ObservedValue<Vector,Void> data, MultivariateGaussian state, Vector stateSample,
       InverseGammaDistribution scaleSS, List<MultivariateGaussian> systemSS,
       double scaleSample) {
     super(hmm, classId, data, state);

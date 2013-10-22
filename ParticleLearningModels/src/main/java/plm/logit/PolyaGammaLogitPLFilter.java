@@ -19,7 +19,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.statslibextensions.statistics.ExtSamplingUtils;
 import com.statslibextensions.statistics.distribution.ScaledInverseGammaCovDistribution;
-import com.statslibextensions.util.ExtStatisticsUtils;
+import com.statslibextensions.util.ObservedValue;
 
 /**
  * A Particle Learning filter for a multivariate Gaussian Dirichlet Process.
@@ -28,11 +28,11 @@ import com.statslibextensions.util.ExtStatisticsUtils;
  * 
  */
 public class PolyaGammaLogitPLFilter
-    extends AbstractParticleFilter<ResponseWithData, PolyaGammaLogitDistribution> {
+    extends AbstractParticleFilter<ObservedValue<Vector, Matrix>, PolyaGammaLogitDistribution> {
 
   public class PolyaGammaPLUpdater extends AbstractCloneableSerializable
       implements
-        Updater<ResponseWithData, PolyaGammaLogitDistribution> {
+        Updater<ObservedValue<Vector, Matrix>, PolyaGammaLogitDistribution> {
 
     private final Random rng;
     private final MultivariateGaussian priorBeta;
@@ -52,7 +52,7 @@ public class PolyaGammaLogitPLFilter
      */
     @Override
     public double computeLogLikelihood(PolyaGammaLogitDistribution particle,
-        ResponseWithData observation) {
+        ObservedValue<Vector, Matrix> observation) {
 
 
       /*
@@ -60,13 +60,13 @@ public class PolyaGammaLogitPLFilter
        * working in 1D right now (a single binary response), however, we'll want to move to multiple
        * binary response next. that's why matrices and vectors are being used here.
        */
-      final Vector y = observation.getResponse();
+      final Vector y = observation.getObservedValue();
       final Vector invOmegaSamples = VectorFactory.getDenseDefault().createVector(1);
       final Vector z = VectorFactory.getDenseDefault().createVector(1);
       /*
        * Now, we compute the predictive log odds, so that we can evaluate the likelihood.
        */
-      final Matrix x = observation.getData();
+      final Matrix x = observation.getObservedData();
       final Vector phi = x.times(particle.getPriorBeta().getMean());
       for (int i = 0; i < y.getDimensionality(); i++) {
         final double omega = PolyaGammaLogitDistribution.sample(
@@ -91,7 +91,7 @@ public class PolyaGammaLogitPLFilter
     public DataDistribution<PolyaGammaLogitDistribution> createInitialParticles(int numParticles) {
 
       final DefaultDataDistribution<PolyaGammaLogitDistribution> initialParticles =
-          new DefaultDataDistribution<>(numParticles);
+          new DefaultDataDistribution<PolyaGammaLogitDistribution>(numParticles);
       for (int i = 0; i < numParticles; i++) {
         final PolyaGammaLogitDistribution particleMvgDPDist =
             new PolyaGammaLogitDistribution(this.priorBeta.clone(), this.priorBetaCov.clone());
@@ -119,7 +119,7 @@ public class PolyaGammaLogitPLFilter
 
   @Override
   public void update(DataDistribution<PolyaGammaLogitDistribution> target,
-      ResponseWithData observation) {
+      ObservedValue<Vector, Matrix> observation) {
     Preconditions.checkState(target.getDomainSize() == this.numParticles);
 
     /*
@@ -146,7 +146,7 @@ public class PolyaGammaLogitPLFilter
      * Propagate
      */
     final DataDistribution<PolyaGammaLogitDistribution> updatedDist =
-        new DefaultDataDistribution<>();
+        new DefaultDataDistribution<PolyaGammaLogitDistribution>();
     for (final PolyaGammaLogitDistribution particle : resampledParticles) {
       final MultivariateGaussian augResponseDist = particle.getAugmentedResponseDistribution();
 
@@ -177,7 +177,7 @@ public class PolyaGammaLogitPLFilter
        * Perform the actual Gaussian Bayes update. FIXME This is a very poor implementation.
        */
       mvGaussianBayesUpdate(augResponseDist, priorGlobalMeanSample,
-          updatedBetaMean, observation.getData());
+          updatedBetaMean, observation.getObservedData());
 
       final Vector betaMeanError = postBetaSmoothedSample.minus(priorBetaSmoothedSample);
       final ScaledInverseGammaCovDistribution updatedBetaCov = particle.getPriorBetaCov().clone();
@@ -194,7 +194,7 @@ public class PolyaGammaLogitPLFilter
           particle.getPriorBeta().times(particle.getAugmentedResponseDistribution());
 
       mvGaussianBayesUpdate(augResponseDist,
-          observation.getData().times(priorBetaSmoothedSample), updatedGlobalMean,
+          observation.getObservedData().times(priorBetaSmoothedSample), updatedGlobalMean,
           MatrixFactory.getDenseDefault().createIdentity(
             augResponseDist.getInputDimensionality(), augResponseDist.getInputDimensionality()));
 
@@ -219,13 +219,13 @@ public class PolyaGammaLogitPLFilter
 
   private MultivariateGaussian getSmoothedPostDist(MultivariateGaussian postBeta, 
                                                    MultivariateGaussian augResponseDist, 
-                                                   ResponseWithData observation, 
+                                                   ObservedValue<Vector, Matrix> observation, 
                                                    Vector obsMeanAdj) {
     final Matrix C = postBeta.getCovariance();
     final Vector m = postBeta.getMean();
     
     // System design
-    final Matrix F = observation.data;
+    final Matrix F = observation.getObservedData();
     final Matrix G = MatrixFactory.getDefault().createIdentity(m.getDimensionality(), m.getDimensionality());
     final Matrix Omega = MatrixFactory.getDefault().createIdentity(m.getDimensionality(), m.getDimensionality()); 
     
@@ -251,13 +251,13 @@ public class PolyaGammaLogitPLFilter
 
   private MultivariateGaussian getSmoothedPriorDist(MultivariateGaussian priorBeta, 
                                                     MultivariateGaussian augResponseDist, 
-                                                    ResponseWithData observation, Vector obsMeanAdj) {
+                                                    ObservedValue<Vector, Matrix> observation, Vector obsMeanAdj) {
     // Prior suff. stats 
     final Matrix C = priorBeta.getCovariance();
     final Vector m = priorBeta.getMean();
     
     // System design
-    final Matrix F = observation.data;
+    final Matrix F = observation.getObservedData();
     final Matrix G = MatrixFactory.getDefault().createIdentity(m.getDimensionality(), m.getDimensionality());
     final Matrix Omega = MatrixFactory.getDefault().createIdentity(m.getDimensionality(), m.getDimensionality()); 
     

@@ -63,7 +63,7 @@ public class GaussianArHpHmmPlFilter extends HmmPlFilter<DlmHiddenMarkovModel, G
     @Override
     public double computeLogLikelihood(
       GaussianArHpTransitionState transState,
-      ObservedValue<Vector> observation) {
+      ObservedValue<Vector,Void> observation) {
 
       final MultivariateGaussian priorPredState = transState.getState();
       final KalmanFilter kf = Iterables.get(transState.getHmm().getStateFilters(),
@@ -156,7 +156,7 @@ public class GaussianArHpHmmPlFilter extends HmmPlFilter<DlmHiddenMarkovModel, G
 
         final GaussianArHpTransitionState particle =
             new GaussianArHpTransitionState(particlePriorHmm, sampledClass,
-                new ObservedValue<Vector>(0, null), priorState, 
+                new ObservedValue<Vector,Void>(0, null), priorState, 
                 priorStateSample,
                 thisPriorScale, thesePriorOffsets,
                 scaleSample);
@@ -272,7 +272,7 @@ public class GaussianArHpHmmPlFilter extends HmmPlFilter<DlmHiddenMarkovModel, G
 
   @Override
   protected GaussianArHpTransitionState propagate(
-      GaussianArHpTransitionState prevState, int predClass, ObservedValue<Vector> data) {
+      GaussianArHpTransitionState prevState, int predClass, ObservedValue<Vector,Void> data) {
     /*
      * Perform the filtering step
      */

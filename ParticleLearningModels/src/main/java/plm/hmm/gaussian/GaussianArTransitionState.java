@@ -56,14 +56,14 @@ public class GaussianArTransitionState extends HmmTransitionState<Double, Standa
       + ", (" + this.stateLogWeight + ")]";
   }
 
-  public GaussianArTransitionState(StandardHMM<Double> hmm, Integer state, ObservedValue<Double> obs, UnivariateGaussian suffStat) {
+  public GaussianArTransitionState(StandardHMM<Double> hmm, Integer state, ObservedValue<Double,Void> obs, UnivariateGaussian suffStat) {
     super(hmm, state, obs);
     this.suffStat = suffStat;
   }
 
   public GaussianArTransitionState(GaussianArTransitionState prevState, 
       StandardHMM<Double> hmm,
-      Integer newState, ObservedValue<Double> obs, UnivariateGaussian suffStat) {
+      Integer newState, ObservedValue<Double,Void> obs, UnivariateGaussian suffStat) {
     super(prevState, hmm, newState, obs);
     this.suffStat = suffStat;
   }

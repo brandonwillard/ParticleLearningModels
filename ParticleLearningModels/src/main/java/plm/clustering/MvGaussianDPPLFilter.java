@@ -136,7 +136,7 @@ public class MvGaussianDPPLFilter extends AbstractParticleFilter<Vector, MvGauss
     public DataDistribution<MvGaussianDPDistribution> createInitialParticles(int numParticles) {
 
       final DefaultDataDistribution<MvGaussianDPDistribution> initialParticles =
-          new DefaultDataDistribution<>(numParticles);
+          new DefaultDataDistribution<MvGaussianDPDistribution>(numParticles);
       for (int i = 0; i < numParticles; i++) {
         final MvGaussianDPDistribution particleMvgDPDist =
             new MvGaussianDPDistribution(
@@ -195,7 +195,7 @@ public class MvGaussianDPPLFilter extends AbstractParticleFilter<Vector, MvGauss
     /*
      * Propagate
      */
-    final DataDistribution<MvGaussianDPDistribution> updatedDist = new DefaultDataDistribution<>();
+    final DataDistribution<MvGaussianDPDistribution> updatedDist = new DefaultDataDistribution<MvGaussianDPDistribution>();
     for (final MvGaussianDPDistribution particle : resampledParticles) {
 
       /*

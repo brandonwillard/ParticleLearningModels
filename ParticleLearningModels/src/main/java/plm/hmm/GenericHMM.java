@@ -15,7 +15,7 @@ import com.statslibextensions.util.ObservedValue;
 
 public interface GenericHMM<ResponseType, StateType, StateDist extends ComputableDistribution<StateType>> extends CloneableSerializable {
 
-  public static class SimHmmObservedValue<ResponseType, StateType> extends ObservedValue<ResponseType> {
+  public static class SimHmmObservedValue<ResponseType, StateType> extends ObservedValue<ResponseType, Void> {
     final protected int classId;
     final protected StateType state;
 

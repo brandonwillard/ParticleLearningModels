@@ -24,11 +24,11 @@ import com.statslibextensions.util.ObservedValue;
 
 public abstract class HmmPlFilter<HmmType extends GenericHMM<ResponseType, ?, ?>, ParticleType extends HmmTransitionState<ResponseType, HmmType>, ResponseType>
     extends
-    AbstractParticleFilter<ObservedValue<ResponseType>, ParticleType> {
+    AbstractParticleFilter<ObservedValue<ResponseType, Void>, ParticleType> {
 
   public static abstract class HmmPlUpdater<HmmType extends GenericHMM<ResponseType, ?, ?>, ParticleType extends HmmTransitionState<ResponseType, HmmType>, ResponseType> extends
       AbstractCloneableSerializable implements
-      Updater<ObservedValue<ResponseType>, ParticleType> {
+      Updater<ObservedValue<ResponseType, Void>, ParticleType> {
 
     private static final long serialVersionUID = 1675005722404209890L;
 
@@ -66,7 +66,7 @@ public abstract class HmmPlFilter<HmmType extends GenericHMM<ResponseType, ?, ?>
   @Override
   public void update(
     DataDistribution<ParticleType> target,
-    ObservedValue<ResponseType> data) {
+    ObservedValue<ResponseType, Void> data) {
 
     /*
      * Compute prior predictive log likelihoods for resampling.
@@ -114,7 +114,7 @@ public abstract class HmmPlFilter<HmmType extends GenericHMM<ResponseType, ?, ?>
     final ResampleType resampleType;
     final CountedDataDistribution<ParticleType> resampledParticles;
     if (this.resampleOnly) {
-      resampledParticles = new CountedDataDistribution<>(true);
+      resampledParticles = new CountedDataDistribution<ParticleType>(true);
       resampledParticles.incrementAll(ExtSamplingUtils
           .sampleMultipleLogScale(
               ExtSamplingUtils.accumulate(logLikelihoods),
@@ -141,7 +141,7 @@ public abstract class HmmPlFilter<HmmType extends GenericHMM<ResponseType, ?, ?>
      * Propagate
      */
     final CountedDataDistribution<ParticleType> updatedDist =
-        new CountedDataDistribution<>(true);
+        new CountedDataDistribution<ParticleType>(true);
     for (final Entry<ParticleType, MutableDouble> entry : resampledParticles
         .asMap().entrySet()) {
       final ParticleType updatedEntry =
@@ -161,6 +161,6 @@ public abstract class HmmPlFilter<HmmType extends GenericHMM<ResponseType, ?, ?>
   }
 
   protected abstract ParticleType propagate(
-      ParticleType particle, int i, ObservedValue<ResponseType> data);
+      ParticleType particle, int i, ObservedValue<ResponseType, Void> data);
 
 }

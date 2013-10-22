@@ -93,7 +93,7 @@ public class CategoricalHMMPLFilterTest {
         final ObservedValue obsState = new ObservedValue(i, y);
         filter.update(distribution, obsState);
   
-        CountedDataDistribution<Integer> stateSums = new CountedDataDistribution<>(true);
+        CountedDataDistribution<Integer> stateSums = new CountedDataDistribution<Integer>(true);
         for (HmmTransitionState<Integer, StandardHMM<Integer>> state : distribution.getDomain()) {
           stateSums.adjust(state.getClassId(), distribution.getLogFraction(state), distribution.getCount(state));
         }
@@ -121,11 +121,11 @@ public class CategoricalHMMPLFilterTest {
 
   @Test
   public void testBaumWelchInitialization1() {
-    DefaultDataDistribution<Integer> s1Likelihood = new DefaultDataDistribution<>();
+    DefaultDataDistribution<Integer> s1Likelihood = new DefaultDataDistribution<Integer>();
     s1Likelihood.increment(0, 1d/3d);
     s1Likelihood.increment(1, 1d/3d);
 
-    DefaultDataDistribution<Integer> s2Likelihood = new DefaultDataDistribution<>();
+    DefaultDataDistribution<Integer> s2Likelihood = new DefaultDataDistribution<Integer>();
     s2Likelihood.increment(0, 1d/3d);
     s2Likelihood.increment(1, 1d/3d);
     
@@ -135,7 +135,7 @@ public class CategoricalHMMPLFilterTest {
     
     StandardHMM<Integer> hmm = 
         StandardHMM.create(
-        new HiddenMarkovModel<>(
+        new HiddenMarkovModel<Integer>(
         VectorFactory.getDefault().copyArray(new double[] {1d/2d, 1d/2d}),
         MatrixFactory.getDefault().copyArray(new double[][] {
             // (i,j) j: from, i: to
@@ -158,11 +158,11 @@ public class CategoricalHMMPLFilterTest {
   
   @Test
   public void testBaumWelchInitialization2() {
-    DefaultDataDistribution<Integer> s1Likelihood = new DefaultDataDistribution<>();
+    DefaultDataDistribution<Integer> s1Likelihood = new DefaultDataDistribution<Integer>();
     s1Likelihood.increment(0, 1d/2d);
     s1Likelihood.increment(1, 1d/2d);
 
-    DefaultDataDistribution<Integer> s2Likelihood = new DefaultDataDistribution<>();
+    DefaultDataDistribution<Integer> s2Likelihood = new DefaultDataDistribution<Integer>();
     s2Likelihood.increment(0, 2d/3d);
     s2Likelihood.increment(1, 1d/3d);
     
@@ -172,7 +172,7 @@ public class CategoricalHMMPLFilterTest {
     
     StandardHMM<Integer> hmm = 
         StandardHMM.create(
-        new HiddenMarkovModel<>(
+        new HiddenMarkovModel<Integer>(
         VectorFactory.getDefault().copyArray(new double[] {1d/2d, 1d/2d}),
         MatrixFactory.getDefault().copyArray(new double[][] {
             // (i,j) j: from, i: to

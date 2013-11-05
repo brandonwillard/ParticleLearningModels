@@ -1,4 +1,4 @@
-package plm.logit;
+package plm.logit.polyagamma;
 
 import gov.sandia.cognition.math.LogMath;
 import gov.sandia.cognition.math.matrix.Matrix;

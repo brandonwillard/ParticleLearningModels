@@ -50,8 +50,10 @@ public class GaussianArHmmPsiLearningEvaluator {
     }
     for (T particle : distribution.getDomain()) {
       final double particleWeight = distribution.getFraction(particle);
-      Preconditions.checkState(particle instanceof GaussianArHpTransitionState);
-      GaussianArHpTransitionState gParticle = (GaussianArHpTransitionState) particle;
+      // stupid hack for a java bug
+      final Object pobj = particle;
+      Preconditions.checkState(pobj instanceof GaussianArHpTransitionState);
+      GaussianArHpTransitionState gParticle = (GaussianArHpTransitionState) pobj;
       List<MultivariateGaussian> psis = gParticle.getSystemOffsetsSS();
 
       // FIXME TODO how to order/identify psis?  sort by magnitude of offset?

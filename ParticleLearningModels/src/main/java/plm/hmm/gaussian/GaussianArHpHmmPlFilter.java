@@ -156,7 +156,7 @@ public class GaussianArHpHmmPlFilter extends HmmPlFilter<DlmHiddenMarkovModel, G
 
         final GaussianArHpTransitionState particle =
             new GaussianArHpTransitionState(particlePriorHmm, sampledClass,
-                new ObservedValue<Vector,Void>(0, null), priorState, 
+                ObservedValue.<Vector>create(0, null), priorState, 
                 priorStateSample,
                 thisPriorScale, thesePriorOffsets,
                 scaleSample);

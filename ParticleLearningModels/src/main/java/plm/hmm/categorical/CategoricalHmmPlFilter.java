@@ -193,11 +193,11 @@ public class CategoricalHmmPlFilter extends HmmPlFilter<StandardHMM<Integer>, Hm
           if (currentState == null) {
             currentState =
                 new HmmTransitionState<T, StandardHMM<T>>(hmm, stateAtTime, 
-                    new ObservedValue<T, Void>(i, observations.get(i)));
+                    ObservedValue.<T>create(i, observations.get(i)));
           } else {
             currentState =
                 new HmmTransitionState<T, StandardHMM<T>>(currentState, currentState.getHmm(), stateAtTime, 
-                    new ObservedValue<T, Void>(i, observations.get(i)));
+                    ObservedValue.<T>create(i, observations.get(i)));
           }
           currentState.setStateLogWeight(logWeightOfState);
         }

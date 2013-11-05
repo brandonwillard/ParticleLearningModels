@@ -73,7 +73,7 @@ public class GaussianArHmmMkfFilter
                 this.rng, this.hmm.getClassMarginalProbabilities());
         final GaussianArTransitionState particle =
             new GaussianArTransitionState(this.hmm, sampledState,
-                new ObservedValue<Double,Void>(-1l, null), prior);
+                ObservedValue.<Double>create(-1l, null), prior);
 
         final double logWeight = -Math.log(numParticles);
         particle.setStateLogWeight(logWeight);

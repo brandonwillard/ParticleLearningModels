@@ -1,4 +1,4 @@
-package plm.logit;
+package plm.logit.polyagamma;
 
 import gov.sandia.cognition.math.matrix.Matrix;
 import gov.sandia.cognition.math.matrix.MatrixFactory;
@@ -44,7 +44,7 @@ public class PolyaGammaLogitRunner {
 //            new double[] {100d, -50d, 34d, 0d, 1e-3d}), MatrixFactory.getDenseDefault()
 //            .createDiagonal(
 //                VectorFactory.getDenseDefault().copyArray(new double[] {100d, 10d, 500d, 30d, 1d})));
-    final List<ObservedValue> observations = Lists.newArrayList();
+    final List<ObservedValue<Vector, Matrix>> observations = Lists.newArrayList();
     for (int i = 0; i < 10000; i++) {
 //      final Vector dataSample = dataGeneratingDist.sample(rng);
       final Vector dataSample = VectorFactory.getDenseDefault().copyArray(new 
@@ -53,7 +53,7 @@ public class PolyaGammaLogitRunner {
       final double pi = 1d / (1d + phi);
       final Vector y = VectorFactory.getDenseDefault().createVector1D(rng.nextDouble() <= pi ? 1d : 0d);
       final Matrix dataDesign = MatrixFactory.getDenseDefault().copyRowVectors(dataSample);
-      observations.add(new ObservedValue(i, y, dataDesign));
+      observations.add(ObservedValue.create(i, y, dataDesign));
     }
 
     /*

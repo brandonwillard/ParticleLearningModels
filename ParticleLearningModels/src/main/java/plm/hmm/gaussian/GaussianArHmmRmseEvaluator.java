@@ -35,14 +35,16 @@ public class GaussianArHmmRmseEvaluator {
 
     final Vector trueState = obs.getState();
     RingAccumulator<Vector> stateMean = new RingAccumulator<Vector>();
+    // rediculous hack to get around java bug
     for (T particle : distribution.getDomain()) {
       final double particleWeight = distribution.getFraction(particle);
-      if (particle instanceof GaussianArTransitionState) {
-        GaussianArTransitionState gParticle = (GaussianArTransitionState) particle;
+      Object tmpParticle = particle;
+      if (tmpParticle instanceof GaussianArTransitionState) {
+        GaussianArTransitionState gParticle = (GaussianArTransitionState) tmpParticle;
         stateMean.accumulate(VectorFactory.getDefault().copyValues(
             gParticle.getSuffStat().getMean() * particleWeight));
-      } else if (particle instanceof GaussianArHpTransitionState) {
-        GaussianArHpTransitionState gParticle = (GaussianArHpTransitionState) particle;
+      } else if (tmpParticle instanceof GaussianArHpTransitionState) {
+        GaussianArHpTransitionState gParticle = (GaussianArHpTransitionState) tmpParticle;
         stateMean.accumulate(gParticle.getState().getMean().scale(particleWeight));
       }
     }

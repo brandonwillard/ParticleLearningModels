@@ -105,7 +105,7 @@ public class HmmResampleComparisonRunner {
             viterbiRate.accumulate(new MutableDouble((x == viterbiResults.get(i) ? 1d : 0d)));
     
             final T y = samples.get(i).getObservedValue();
-            final ObservedValue<T, Void> obsState = new ObservedValue<T, Void>(i, y);
+            final ObservedValue<T, Void> obsState = ObservedValue.create(i, y);
     
             rsFilter.update(rsDistribution, obsState);
     

@@ -90,7 +90,7 @@ public class CategoricalHMMPLFilterTest {
        */
       for (int i = 0; i < T; i++) {
         final Integer y = samples.get(i).getObservedValue();
-        final ObservedValue obsState = new ObservedValue(i, y);
+        final ObservedValue<Integer, Void> obsState = ObservedValue.create(i, y);
         filter.update(distribution, obsState);
   
         CountedDataDistribution<Integer> stateSums = new CountedDataDistribution<Integer>(true);

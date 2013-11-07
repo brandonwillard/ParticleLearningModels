@@ -23,12 +23,16 @@ import gov.sandia.cognition.util.ObjectUtil;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Random;
+import java.util.TreeMap;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.primitives.Doubles;
 import com.statslibextensions.statistics.CountedDataDistribution;
 import com.statslibextensions.statistics.ExtSamplingUtils;
 import com.statslibextensions.statistics.bayesian.DlmUtils;
@@ -73,17 +77,23 @@ public class FruehwirthLogitPLFilter extends AbstractParticleFilter<ObservedValu
         ObservedValue<Vector, Matrix> observation) {
 
       final MultivariateGaussian predictivePrior = particle.getLinearState().clone();
-      KalmanFilter kf = particle.getLinearComponent();
+      KalmanFilter kf = particle.getRegressionFilter();
       kf.predict(predictivePrior);
       final Matrix F = kf.getModel().getC();
-      final double predPriorObsMean = F.times(predictivePrior.getMean()).getElement(0);
+
+      final double predPriorObsMean = F.times(predictivePrior.getMean()).getElement(0)
+          + particle.getEVcomponent().getMean();
       final double predPriorObsCov = F.times(predictivePrior.getCovariance()).times(F.transpose())
           .plus(kf.getMeasurementCovariance()).getElement(0, 0);
+      
+      particle.setPriorPredMean(predPriorObsMean);
+      particle.setPriorPredCov(predPriorObsCov);
+
+
       final double likelihood = observation.getObservedValue().getElement(0) > 0 ?
-          1d - UnivariateGaussian.CDF.evaluate(predPriorObsMean, 
-              particle.getEVcomponent().getMean(), predPriorObsCov)
-              : UnivariateGaussian.CDF.evaluate(predPriorObsMean, 
-              particle.getEVcomponent().getMean(), predPriorObsCov); 
+          1d - UnivariateGaussian.CDF.evaluate(0d, predPriorObsMean, predPriorObsCov)
+              : UnivariateGaussian.CDF.evaluate(0d, predPriorObsMean, predPriorObsCov); 
+          
       return Math.log(likelihood);
     }
 
@@ -146,10 +156,25 @@ public class FruehwirthLogitPLFilter extends AbstractParticleFilter<ObservedValu
      * Compute prior predictive log likelihoods for resampling.
      */
     double particleTotalLogLikelihood = Double.NEGATIVE_INFINITY;
-    final double[] logLikelihoods = new double[this.numParticles * 10];
-    final List<FruehwirthLogitParticle> particleSupport = Lists.newArrayListWithExpectedSize(this.numParticles * 10);
-    int i = 0;
-    for (final FruehwirthLogitParticle particle : target.getDomain()) {
+//    final double[] logLikelihoods = new double[this.numParticles * 10];
+//    final List<FruehwirthLogitParticle> particleSupport = Lists.newArrayListWithExpectedSize(this.numParticles * 10);
+    /*
+     * TODO: I like the idea of this tree-map, but not the
+     * equality killing comparator.  This probably kills
+     * the efficiency of the hashing, but i suppose we don't 
+     * actually use that here!
+     */
+    TreeMap<Double, FruehwirthLogitParticle> particleTree = Maps.
+        <Double, Double, FruehwirthLogitParticle>newTreeMap(
+        new Comparator<Double>() {
+          @Override
+          public int compare(Double o1, Double o2) {
+            return o1 < o2 ? 1 : -1;
+          }
+        });
+//    int i = 0;
+    for (Entry<FruehwirthLogitParticle, ? extends Number> particleEntry : target.asMap().entrySet()) {
+      final FruehwirthLogitParticle particle = particleEntry.getKey();
       for (int j = 0; j < 10; j++) {
         /*
          * TODO could avoid cloning if we didn't change the measurement covariance,
@@ -164,24 +189,33 @@ public class FruehwirthLogitPLFilter extends AbstractParticleFilter<ObservedValu
         /*
          * Update the observed data for the regression component.
          */
-        predictiveParticle.getLinearComponent().getModel().setC(data.getObservedData());
+        predictiveParticle.getRegressionFilter().getModel().setC(data.getObservedData());
 
-//        final Vector compMean = VectorFactory.getDefault().copyArray(new double[] {componentDist.getMean()});
         final Matrix compVar = MatrixFactory.getDefault().copyArray(
             new double[][] {{componentDist.getVariance()}});
-        predictiveParticle.getLinearComponent().setMeasurementCovariance(compVar);
+        predictiveParticle.getRegressionFilter().setMeasurementCovariance(compVar);
         
-        final double logLikelihood = this.updater.computeLogLikelihood(predictiveParticle, data);
+        final double logLikelihood = this.updater.computeLogLikelihood(predictiveParticle, data)
+            + Math.log(this.evDistribution.getPriorWeights()[j])
+            + particleEntry.getValue().doubleValue();
         particleTotalLogLikelihood = LogMath.add(particleTotalLogLikelihood, logLikelihood);
-        logLikelihoods[i] = logLikelihood;
-        particleSupport.add(predictiveParticle);
-        i++;
+//        logLikelihoods[i] = logLikelihood;
+//        particleSupport.add(predictiveParticle);
+        particleTree.put(logLikelihood, predictiveParticle);
+//        i++;
       }
     }
 
+//    final WFCountedDataDistribution<FruehwirthLogitParticle> resampledParticles =
+//        ExtSamplingUtils.waterFillingResample(logLikelihoods, particleTotalLogLikelihood,
+//            particleSupport, random, this.numParticles);
+
     final WFCountedDataDistribution<FruehwirthLogitParticle> resampledParticles =
-        ExtSamplingUtils.waterFillingResample(logLikelihoods, particleTotalLogLikelihood,
-            particleSupport, random, this.numParticles);
+        ExtSamplingUtils.waterFillingResample(
+            Doubles.toArray(particleTree.keySet()), 
+            particleTotalLogLikelihood,
+            Lists.newArrayList(particleTree.values()), 
+            random, this.numParticles);
 
     /*
      * Propagate
@@ -199,15 +233,8 @@ public class FruehwirthLogitPLFilter extends AbstractParticleFilter<ObservedValu
       FruehwirthLogitParticle priorParticle, ObservedValue<Vector, Matrix> data) {
     final FruehwirthLogitParticle updatedParticle = priorParticle.clone();
     
-    final MultivariateGaussian posteriorState = updatedParticle.linearState;
-    /*
-     * TODO should probably save the prior predictive from last time.
-     */
-    final Matrix F = updatedParticle.linearComponent.getModel().getC();
-    final Matrix Sigma = updatedParticle.linearComponent.getMeasurementCovariance();
-    final Matrix Q = F.times(posteriorState.getCovariance()).times(F.transpose()).plus(Sigma);
-    final double sigma = Math.sqrt(Q.getElement(0, 0));
-    final double mu = F.times(posteriorState.getMean()).getElement(0);
+    final double f = updatedParticle.getPriorPredMean();
+    final double Q = updatedParticle.getPriorPredCov();
     final double U = this.random.nextDouble();
     
     /*
@@ -223,20 +250,35 @@ public class FruehwirthLogitPLFilter extends AbstractParticleFilter<ObservedValu
       limUpper = 0d;
       limLower = Double.NEGATIVE_INFINITY;
     }
-    final double PhiUpper = UnivariateGaussian.CDF.evaluate(limUpper, mu, sigma);
-    final double PhiLower = UnivariateGaussian.CDF.evaluate(limLower, mu, sigma);
+    final double PhiUpper = UnivariateGaussian.CDF.evaluate(limUpper, f, Q);
+    final double PhiLower = UnivariateGaussian.CDF.evaluate(limLower, f, Q);
     final double dSampledAugResponse = UnivariateGaussian.CDF.Inverse.evaluate(
         PhiLower + U * (PhiUpper - PhiLower), 0, 1)
-        *sigma + mu;
+        *Math.sqrt(Q) + f;
     final Vector sampledAugResponse = VectorFactory.getDefault().copyValues(dSampledAugResponse);
-    final Vector augObs = sampledAugResponse.minus(
-        VectorFactory.getDefault().copyValues(updatedParticle.EVcomponent.getMean()));
+
+    /*
+     * Let's try Fruewirth-Schnatter's method for sampling...
+     */
+//    final Vector betaSample = updatedParticle.linearState.sample(this.random);
+//
+//    // X * beta
+//    final double lambda = Math.exp(data.getObservedData().times(betaSample).getElement(0));
+//    final double dSampledAugResponse = -Math.log(
+//        -Math.log(this.random.nextDouble())/(1d+lambda)
+//        - (data.getObservedValue().getElement(0) > 0d 
+//            ? 0d : Math.log(this.random.nextDouble())/lambda));
+//
+//    final Vector sampledAugResponse = VectorFactory.getDefault().copyValues(dSampledAugResponse);
+
+    updatedParticle.setAugResponseSample(sampledAugResponse);
 
     // TODO we should've already set this, so it might be redundant.
-    updatedParticle.linearComponent.setMeasurementCovariance(MatrixFactory.getDefault().copyArray(
+    updatedParticle.regressionFilter.setMeasurementCovariance(MatrixFactory.getDefault().copyArray(
         new double[][] {{updatedParticle.EVcomponent.getVariance()}}));
 
-    updatedParticle.getLinearComponent().update(posteriorState, augObs);
+    final MultivariateGaussian posteriorState = updatedParticle.linearState;
+    updatedParticle.getRegressionFilter().update(posteriorState, sampledAugResponse);
     
     return updatedParticle;
   }

@@ -11,10 +11,12 @@ import gov.sandia.cognition.statistics.DataDistribution;
 import gov.sandia.cognition.statistics.bayesian.KalmanFilter;
 import gov.sandia.cognition.statistics.distribution.ExponentialDistribution;
 import gov.sandia.cognition.statistics.distribution.InverseWishartDistribution;
+import gov.sandia.cognition.statistics.distribution.LogisticDistribution;
 import gov.sandia.cognition.statistics.distribution.MultivariateGaussian;
 import gov.sandia.cognition.statistics.distribution.MultivariateMixtureDensityModel;
 import gov.sandia.cognition.statistics.distribution.NormalInverseWishartDistribution;
 import gov.sandia.cognition.statistics.distribution.UnivariateGaussian;
+import gov.sandia.cognition.util.DefaultPair;
 import gov.sandia.cognition.util.Pair;
 
 import java.util.List;
@@ -24,12 +26,32 @@ import java.util.Random;
 import com.google.common.collect.Lists;
 import com.statslibextensions.statistics.bayesian.DlmUtils;
 import com.statslibextensions.util.ObservedValue;
+import com.statslibextensions.util.ObservedValue.SimObservedValue;
 
 /**
  * @author bwillard
  * 
  */
 public class FruehwirthLogitRunner {
+  
+  public static class LogitTrueState {
+    protected Vector state;
+    protected double logitSample;
+
+    public LogitTrueState(Vector state, double logitSample) {
+      this.state = state;
+      this.logitSample = logitSample;
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder builder = new StringBuilder();
+      builder.append("LogitTrueState [state=").append(this.state)
+          .append(", logitSample=").append(this.logitSample).append("]");
+      return builder.toString();
+    }
+    
+  }
 
   public static void main(String[] args) {
 
@@ -51,19 +73,20 @@ public class FruehwirthLogitRunner {
     final MultivariateGaussian trueInitialPrior = new MultivariateGaussian(
         VectorFactory.getDefault().copyValues(0d),
         MatrixFactory.getDefault().copyArray(new double[][] {{1d}}));
-    final int N = 10000;
+    final int N = 100;
     final List<ObservedValue<Vector, Matrix>> observations = Lists.newArrayList();
-    final ExponentialDistribution ev1Dist = new ExponentialDistribution(1d);
+    final LogisticDistribution ev1Dist = new LogisticDistribution(0d, 1d);
 
     List<Pair<Vector, Vector>> dlmSamples = DlmUtils.sampleDlm(rng, N, trueInitialPrior, initialFilter);
     for (Pair<Vector, Vector> samplePair : dlmSamples) {
-      final double augObs = samplePair.getFirst().getElement(0) + ev1Dist.sample(rng);
+      final double logitSample = ev1Dist.sample(rng);
+      final double augObs = samplePair.getFirst().getElement(0) + logitSample;
       final double obs = (augObs > 0d) ? 1d : 0d;
       observations.add(
-          ObservedValue.<Vector, Matrix>create(
+          SimObservedValue.<Vector, Matrix, LogitTrueState>create(
               VectorFactory.getDefault().copyValues(obs),
-              MatrixFactory.getDefault().copyArray(new double[][] {{1d}})
-              ));
+              MatrixFactory.getDefault().copyArray(new double[][] {{1d}}),
+              new LogitTrueState(samplePair.getSecond(), logitSample)));
     }
 
     /*
@@ -77,7 +100,7 @@ public class FruehwirthLogitRunner {
     final Matrix modelCovariance = MatrixFactory.getDefault().copyArray(new double[][] {{1}});
     final FruehwirthLogitPLFilter plFilter =
         new FruehwirthLogitPLFilter(initialPrior, F, G, modelCovariance, rng);
-    plFilter.setNumParticles(10);
+    plFilter.setNumParticles(50);
 
     final DataDistribution<FruehwirthLogitParticle> currentMixtureDistribution =
         plFilter.createInitialLearnedObject();

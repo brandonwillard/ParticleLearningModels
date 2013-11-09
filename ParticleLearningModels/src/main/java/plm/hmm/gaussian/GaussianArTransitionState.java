@@ -1,23 +1,10 @@
 package plm.hmm.gaussian;
 
-import java.util.List;
-
+import gov.sandia.cognition.statistics.distribution.UnivariateGaussian;
 import plm.hmm.HmmTransitionState;
 import plm.hmm.StandardHMM;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.statslibextensions.util.ObservedValue;
-import com.statslibextensions.util.CountedWeightedValue;
-
-import gov.sandia.cognition.learning.algorithm.hmm.HiddenMarkovModel;
-import gov.sandia.cognition.math.matrix.Vector;
-import gov.sandia.cognition.statistics.bayesian.KalmanFilter;
-import gov.sandia.cognition.statistics.distribution.UnivariateGaussian;
-import gov.sandia.cognition.util.AbstractCloneableSerializable;
-import gov.sandia.cognition.util.CloneableSerializable;
-import gov.sandia.cognition.util.DefaultWeightedValue;
-import gov.sandia.cognition.util.WeightedValue;
 
 /**
  * A simple class for tracking hidden state histories in a hidden markov model

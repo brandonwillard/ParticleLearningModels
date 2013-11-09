@@ -1,13 +1,13 @@
 package plm.hmm.gaussian;
 
-import plm.hmm.GenericHMM;
-import plm.hmm.HmmTransitionState;
-import plm.hmm.GenericHMM.SimHmmObservedValue;
-import plm.hmm.HmmTransitionState.ResampleType;
 import gov.sandia.cognition.math.MutableDouble;
 import gov.sandia.cognition.math.RingAccumulator;
 import gov.sandia.cognition.math.matrix.Vector;
 import gov.sandia.cognition.statistics.DataDistribution;
+import plm.hmm.GenericHMM;
+import plm.hmm.GenericHMM.SimHmmObservedValue;
+import plm.hmm.HmmTransitionState;
+import plm.hmm.HmmTransitionState.ResampleType;
 import au.com.bytecode.opencsv.CSVWriter;
 
 public class GaussianArHmmClassEvaluator {

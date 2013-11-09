@@ -1,6 +1,5 @@
 package plm.hmm.gaussian;
 
-import gov.sandia.cognition.learning.algorithm.hmm.HiddenMarkovModel;
 import gov.sandia.cognition.math.matrix.Matrix;
 import gov.sandia.cognition.math.matrix.MatrixFactory;
 import gov.sandia.cognition.math.matrix.Vector;
@@ -9,25 +8,21 @@ import gov.sandia.cognition.statistics.DataDistribution;
 import gov.sandia.cognition.statistics.DiscreteSamplingUtil;
 import gov.sandia.cognition.statistics.bayesian.KalmanFilter;
 import gov.sandia.cognition.statistics.distribution.InverseGammaDistribution;
-import gov.sandia.cognition.statistics.distribution.InverseWishartDistribution;
 import gov.sandia.cognition.statistics.distribution.MultivariateGaussian;
-import gov.sandia.cognition.statistics.distribution.UnivariateGaussian;
 import gov.sandia.cognition.util.ObjectUtil;
 
 import java.util.List;
 import java.util.Random;
-import java.util.TreeSet;
 
 import org.apache.log4j.Logger;
 
 import plm.hmm.DlmHiddenMarkovModel;
 import plm.hmm.HmmPlFilter;
-import plm.hmm.HmmTransitionState;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import com.statslibextensions.statistics.CountedDataDistribution;
+import com.statslibextensions.statistics.distribution.CountedDataDistribution;
 import com.statslibextensions.statistics.distribution.WFCountedDataDistribution;
 import com.statslibextensions.util.ObservedValue;
 

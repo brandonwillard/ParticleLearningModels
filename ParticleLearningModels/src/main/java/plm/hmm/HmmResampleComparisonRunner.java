@@ -1,12 +1,10 @@
 package plm.hmm;
 
-import gov.sandia.cognition.learning.algorithm.hmm.HiddenMarkovModel;
 import gov.sandia.cognition.math.MutableDouble;
 import gov.sandia.cognition.math.RingAccumulator;
 import gov.sandia.cognition.math.matrix.Vector;
 import gov.sandia.cognition.math.matrix.VectorFactory;
 import gov.sandia.cognition.statistics.bayesian.ParticleFilter;
-import gov.sandia.cognition.util.Pair;
 import gov.sandia.cognition.util.WeightedValue;
 
 import java.io.FileWriter;
@@ -24,8 +22,7 @@ import au.com.bytecode.opencsv.CSVWriter;
 
 import com.google.common.collect.Lists;
 import com.google.common.math.DoubleMath;
-import com.statslibextensions.statistics.CountedDataDistribution;
-import com.statslibextensions.statistics.ExtSamplingUtils;
+import com.statslibextensions.statistics.distribution.CountedDataDistribution;
 import com.statslibextensions.util.ObservedValue;
 
 public class HmmResampleComparisonRunner {

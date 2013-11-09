@@ -1,13 +1,11 @@
 package plm.hmm.gaussian;
 
-import gov.sandia.cognition.math.matrix.Vector;
 import gov.sandia.cognition.statistics.DataDistribution;
 import gov.sandia.cognition.statistics.DiscreteSamplingUtil;
 import gov.sandia.cognition.statistics.distribution.UnivariateGaussian;
 
 import java.util.List;
 import java.util.Random;
-import java.util.TreeSet;
 
 import org.apache.log4j.Logger;
 
@@ -17,7 +15,7 @@ import plm.hmm.StandardHMM;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-import com.statslibextensions.statistics.CountedDataDistribution;
+import com.statslibextensions.statistics.distribution.CountedDataDistribution;
 import com.statslibextensions.statistics.distribution.WFCountedDataDistribution;
 import com.statslibextensions.util.ObservedValue;
 

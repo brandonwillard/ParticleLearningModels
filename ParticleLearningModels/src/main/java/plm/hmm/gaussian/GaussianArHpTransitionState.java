@@ -1,18 +1,15 @@
 package plm.hmm.gaussian;
 
-import java.util.List;
-
-import com.statslibextensions.util.ObservedValue;
-
-import gov.sandia.cognition.learning.algorithm.hmm.HiddenMarkovModel;
-import gov.sandia.cognition.math.matrix.Matrix;
 import gov.sandia.cognition.math.matrix.Vector;
 import gov.sandia.cognition.statistics.distribution.InverseGammaDistribution;
-import gov.sandia.cognition.statistics.distribution.InverseWishartDistribution;
 import gov.sandia.cognition.statistics.distribution.MultivariateGaussian;
 import gov.sandia.cognition.util.ObjectUtil;
+
+import java.util.List;
+
 import plm.hmm.DlmHiddenMarkovModel;
-import plm.hmm.HmmTransitionState;
+
+import com.statslibextensions.util.ObservedValue;
 
 public class GaussianArHpTransitionState extends DlmTransitionState {
   

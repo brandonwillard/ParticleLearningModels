@@ -20,7 +20,6 @@ import org.paukov.combinatorics.Factory;
 import org.paukov.combinatorics.Generator;
 import org.paukov.combinatorics.ICombinatoricsVector;
 
-import plm.hmm.GenericHMM;
 import plm.hmm.HmmPlFilter;
 import plm.hmm.HmmTransitionState;
 import plm.hmm.StandardHMM;
@@ -30,8 +29,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.math.DoubleMath;
 import com.statslibextensions.math.ExtLogMath;
-import com.statslibextensions.statistics.CountedDataDistribution;
 import com.statslibextensions.statistics.ExtSamplingUtils;
+import com.statslibextensions.statistics.distribution.CountedDataDistribution;
 import com.statslibextensions.statistics.distribution.WFCountedDataDistribution;
 import com.statslibextensions.util.ObservedValue;
 

@@ -3,10 +3,7 @@ package plm.hmm;
 import gov.sandia.cognition.math.matrix.Matrix;
 import gov.sandia.cognition.math.matrix.Vector;
 import gov.sandia.cognition.statistics.ComputableDistribution;
-import gov.sandia.cognition.statistics.distribution.MultivariateGaussian;
 import gov.sandia.cognition.util.CloneableSerializable;
-import gov.sandia.cognition.util.Pair;
-import gov.sandia.cognition.util.WeightedValue;
 
 import java.util.List;
 import java.util.Random;

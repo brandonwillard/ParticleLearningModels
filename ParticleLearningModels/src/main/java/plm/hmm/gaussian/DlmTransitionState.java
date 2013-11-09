@@ -1,12 +1,11 @@
 package plm.hmm.gaussian;
 
-import com.statslibextensions.util.ObservedValue;
-
-import gov.sandia.cognition.learning.algorithm.hmm.HiddenMarkovModel;
 import gov.sandia.cognition.math.matrix.Vector;
 import gov.sandia.cognition.statistics.distribution.MultivariateGaussian;
 import plm.hmm.DlmHiddenMarkovModel;
 import plm.hmm.HmmTransitionState;
+
+import com.statslibextensions.util.ObservedValue;
 
 public class DlmTransitionState extends HmmTransitionState<Vector, DlmHiddenMarkovModel> {
   

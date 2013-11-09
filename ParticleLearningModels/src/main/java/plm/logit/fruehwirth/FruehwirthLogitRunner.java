@@ -1,7 +1,5 @@
 package plm.logit.fruehwirth;
 
-import gov.sandia.cognition.math.MutableDouble;
-import gov.sandia.cognition.math.RingAccumulator;
 import gov.sandia.cognition.math.matrix.Matrix;
 import gov.sandia.cognition.math.matrix.MatrixFactory;
 import gov.sandia.cognition.math.matrix.Vector;
@@ -9,14 +7,9 @@ import gov.sandia.cognition.math.matrix.VectorFactory;
 import gov.sandia.cognition.math.signals.LinearDynamicalSystem;
 import gov.sandia.cognition.statistics.DataDistribution;
 import gov.sandia.cognition.statistics.bayesian.KalmanFilter;
-import gov.sandia.cognition.statistics.distribution.ExponentialDistribution;
-import gov.sandia.cognition.statistics.distribution.InverseWishartDistribution;
 import gov.sandia.cognition.statistics.distribution.LogisticDistribution;
 import gov.sandia.cognition.statistics.distribution.MultivariateGaussian;
-import gov.sandia.cognition.statistics.distribution.MultivariateMixtureDensityModel;
-import gov.sandia.cognition.statistics.distribution.NormalInverseWishartDistribution;
 import gov.sandia.cognition.statistics.distribution.UnivariateGaussian;
-import gov.sandia.cognition.util.DefaultPair;
 import gov.sandia.cognition.util.Pair;
 
 import java.util.List;
@@ -63,43 +56,60 @@ public class FruehwirthLogitRunner {
      */
     final KalmanFilter initialFilter = new KalmanFilter(
           new LinearDynamicalSystem(
-              MatrixFactory.getDefault().copyArray(new double[][] {{1}}),
-              MatrixFactory.getDefault().copyArray(new double[][] {{0}}),
-              MatrixFactory.getDefault().copyArray(new double[][] {{1}})),
-          MatrixFactory.getDefault().copyArray(new double[][] {{1}}),
-          MatrixFactory.getDefault().copyArray(new double[][] {{0}})    
+              MatrixFactory.getDefault().copyArray(new double[][] {
+                  {1d, 0d},
+                  {0d, 1d}}),
+              MatrixFactory.getDefault().copyArray(new double[][] {
+                  {0d, 0d},
+                  {0d, 0d}}),
+              MatrixFactory.getDefault().copyArray(new double[][] {
+                  {2d, 1d}})),
+          MatrixFactory.getDefault().copyArray(new double[][] {
+              {0d, 0d},
+              {0d, 0d}}),
+          MatrixFactory.getDefault().copyArray(new double[][] {{0d}})    
         );
     
     final MultivariateGaussian trueInitialPrior = new MultivariateGaussian(
-        VectorFactory.getDefault().copyValues(0d),
-        MatrixFactory.getDefault().copyArray(new double[][] {{1d}}));
+        VectorFactory.getDefault().copyValues(0.5d, 3d),
+        MatrixFactory.getDefault().copyArray(new double[][] {
+            {1d, 0d},
+            {0d, 1d}}));
     final int N = 100;
     final List<ObservedValue<Vector, Matrix>> observations = Lists.newArrayList();
     final LogisticDistribution ev1Dist = new LogisticDistribution(0d, 1d);
 
-    List<Pair<Vector, Vector>> dlmSamples = DlmUtils.sampleDlm(rng, N, trueInitialPrior, initialFilter);
-    for (Pair<Vector, Vector> samplePair : dlmSamples) {
+    List<SimObservedValue<Vector, Matrix, Vector>> dlmSamples = DlmUtils.sampleDlm(
+        rng, N, trueInitialPrior, initialFilter);
+    for (SimObservedValue<Vector, Matrix, Vector> samplePair : dlmSamples) {
       final double logitSample = ev1Dist.sample(rng);
-      final double augObs = samplePair.getFirst().getElement(0) + logitSample;
+      final double augObs = samplePair.getObservedValue().getElement(0) + logitSample;
       final double obs = (augObs > 0d) ? 1d : 0d;
       observations.add(
           SimObservedValue.<Vector, Matrix, LogitTrueState>create(
               VectorFactory.getDefault().copyValues(obs),
-              MatrixFactory.getDefault().copyArray(new double[][] {{1d}}),
-              new LogitTrueState(samplePair.getSecond(), logitSample)));
+              initialFilter.getModel().getC(),
+              new LogitTrueState(samplePair.getTrueState(), logitSample)));
     }
 
     /*
      * Create and initialize the PL filter
      */
     final MultivariateGaussian initialPrior = new MultivariateGaussian(
-        VectorFactory.getDefault().copyValues(0d),
-        MatrixFactory.getDefault().copyArray(new double[][] {{0.5d}}));
-    final Matrix F = MatrixFactory.getDefault().copyArray(new double[][] {{1}});
-    final Matrix G = MatrixFactory.getDefault().copyArray(new double[][] {{1}});
-    final Matrix modelCovariance = MatrixFactory.getDefault().copyArray(new double[][] {{1}});
+        VectorFactory.getDefault().copyValues(0d, 0d),
+        MatrixFactory.getDefault().copyArray(new double[][] {
+            {10d, 0d},
+            {0d, 10d}}));
+    final Matrix F = MatrixFactory.getDefault().copyArray(new double[][] {
+        {1d, 1d}});
+    final Matrix G = MatrixFactory.getDefault().copyArray(new double[][] {
+        {1d, 0d}, 
+        {0d, 1d}});
+    final Matrix modelCovariance = MatrixFactory.getDefault().copyArray(new double[][] {
+        {0d, 0d},
+        {0d, 0d}});
     final FruehwirthLogitPLFilter plFilter =
-        new FruehwirthLogitPLFilter(initialPrior, F, G, modelCovariance, rng);
+        new FruehwirthLogitPLFilter(initialPrior, F, G, modelCovariance, rng, false);
     plFilter.setNumParticles(50);
 
     final DataDistribution<FruehwirthLogitParticle> currentMixtureDistribution =
@@ -118,7 +128,7 @@ public class FruehwirthLogitRunner {
 
       for (Entry<FruehwirthLogitParticle, ? extends Number> particleEntry : 
         currentMixtureDistribution.asMap().entrySet()) {
-        final Vector trueState = dlmSamples.get(i).getSecond();
+        final Vector trueState = dlmSamples.get(i).getTrueState();
         final Vector particleState = particleEntry.getKey().getLinearState().getMean();
         final double rse = Math.sqrt(trueState.minus(particleState).norm2());
         System.out.println("true: " + trueState + ", particle:" + particleState);

@@ -7,7 +7,6 @@ import gov.sandia.cognition.math.matrix.Vector;
 import gov.sandia.cognition.statistics.ComputableDistribution;
 import gov.sandia.cognition.statistics.DataDistribution;
 import gov.sandia.cognition.util.AbstractCloneableSerializable;
-import gov.sandia.cognition.util.DefaultPair;
 import gov.sandia.cognition.util.Pair;
 import gov.sandia.cognition.util.WeightedValue;
 

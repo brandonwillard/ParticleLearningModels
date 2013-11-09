@@ -1,25 +1,21 @@
 package plm.hmm.categorical;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import gov.sandia.cognition.learning.algorithm.hmm.HiddenMarkovModel;
 import gov.sandia.cognition.math.MutableDouble;
 import gov.sandia.cognition.math.RingAccumulator;
 import gov.sandia.cognition.math.matrix.MatrixFactory;
 import gov.sandia.cognition.math.matrix.Vector;
 import gov.sandia.cognition.math.matrix.VectorFactory;
-import gov.sandia.cognition.statistics.DataDistribution;
 import gov.sandia.cognition.statistics.distribution.DefaultDataDistribution;
-import gov.sandia.cognition.util.Pair;
-import gov.sandia.cognition.util.WeightedValue;
 
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.TreeSet;
 
 import org.junit.Test;
@@ -27,17 +23,13 @@ import org.junit.Test;
 import plm.hmm.GenericHMM.SimHmmObservedValue;
 import plm.hmm.HmmTransitionState;
 import plm.hmm.StandardHMM;
-import plm.hmm.categorical.CategoricalHmmPlFilter;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.google.common.math.DoubleMath;
 import com.google.common.primitives.Doubles;
 import com.statslibextensions.math.ExtLogMath;
-import com.statslibextensions.statistics.CountedDataDistribution;
-import com.statslibextensions.statistics.ExtSamplingUtils;
+import com.statslibextensions.statistics.distribution.CountedDataDistribution;
 import com.statslibextensions.util.ObservedValue;
 
 public class CategoricalHMMPLFilterTest {

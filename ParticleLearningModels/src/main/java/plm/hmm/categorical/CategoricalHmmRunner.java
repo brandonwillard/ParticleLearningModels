@@ -1,44 +1,19 @@
 package plm.hmm.categorical;
 
-import java.io.FileWriter;
+import gov.sandia.cognition.learning.algorithm.hmm.HiddenMarkovModel;
+import gov.sandia.cognition.math.matrix.MatrixFactory;
+import gov.sandia.cognition.math.matrix.VectorFactory;
+import gov.sandia.cognition.statistics.distribution.DefaultDataDistribution;
+
 import java.io.IOException;
-import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 import java.util.Random;
-import java.util.Set;
-import java.util.TreeSet;
 
 import plm.hmm.HmmPlFilter;
 import plm.hmm.HmmResampleComparisonRunner;
 import plm.hmm.HmmTransitionState;
-import plm.hmm.HmmPlFilter.HmmPlUpdater;
 import plm.hmm.StandardHMM;
-import plm.hmm.gaussian.GaussianArHmmPlFilter;
-import au.com.bytecode.opencsv.CSVWriter;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-import com.google.common.math.DoubleMath;
-import com.statslibextensions.math.ExtLogMath;
-import com.statslibextensions.statistics.CountedDataDistribution;
-import com.statslibextensions.statistics.ExtSamplingUtils;
-import com.statslibextensions.util.ObservedValue;
-
-import gov.sandia.cognition.learning.algorithm.hmm.HiddenMarkovModel;
-import gov.sandia.cognition.math.MutableDouble;
-import gov.sandia.cognition.math.RingAccumulator;
-import gov.sandia.cognition.math.RingAverager;
-import gov.sandia.cognition.math.matrix.MatrixFactory;
-import gov.sandia.cognition.math.matrix.Vector;
-import gov.sandia.cognition.math.matrix.VectorFactory;
-import gov.sandia.cognition.statistics.DataDistribution;
-import gov.sandia.cognition.statistics.distribution.DefaultDataDistribution;
-import gov.sandia.cognition.util.Pair;
-import gov.sandia.cognition.util.WeightedValue;
 
 public class CategoricalHmmRunner extends HmmResampleComparisonRunner {
 

@@ -13,20 +13,19 @@ import gov.sandia.cognition.statistics.distribution.MultivariateGaussian;
 
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import plm.hmm.DlmHiddenMarkovModel;
+import plm.hmm.GenericHMM.SimHmmObservedValue;
 import plm.hmm.HmmPlFilter;
 import plm.hmm.HmmResampleComparisonRunner;
-import plm.hmm.GenericHMM.SimHmmObservedValue;
 import au.com.bytecode.opencsv.CSVWriter;
 
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
-import com.statslibextensions.statistics.CountedDataDistribution;
+import com.statslibextensions.statistics.distribution.CountedDataDistribution;
 
 public class GaussianArHpHmmRunner extends HmmResampleComparisonRunner {
 

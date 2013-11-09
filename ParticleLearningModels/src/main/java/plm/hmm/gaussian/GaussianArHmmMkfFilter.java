@@ -1,31 +1,19 @@
 package plm.hmm.gaussian;
 
-import gov.sandia.cognition.math.MutableDouble;
-import gov.sandia.cognition.math.matrix.Vector;
-import gov.sandia.cognition.statistics.ComputableDistribution;
 import gov.sandia.cognition.statistics.DataDistribution;
 import gov.sandia.cognition.statistics.DiscreteSamplingUtil;
 import gov.sandia.cognition.statistics.bayesian.AbstractParticleFilter;
 import gov.sandia.cognition.statistics.distribution.UnivariateGaussian;
 import gov.sandia.cognition.util.AbstractCloneableSerializable;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map.Entry;
 import java.util.Random;
 
-import plm.hmm.HmmTransitionState;
 import plm.hmm.HmmTransitionState.ResampleType;
 import plm.hmm.StandardHMM;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import com.google.common.primitives.Doubles;
 import com.statslibextensions.math.ExtLogMath;
-import com.statslibextensions.math.MutableDoubleCount;
-import com.statslibextensions.statistics.CountedDataDistribution;
-import com.statslibextensions.statistics.ExtSamplingUtils;
-import com.statslibextensions.statistics.distribution.WFCountedDataDistribution;
+import com.statslibextensions.statistics.distribution.CountedDataDistribution;
 import com.statslibextensions.util.ObservedValue;
 
 /**

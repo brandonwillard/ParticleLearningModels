@@ -1,14 +1,5 @@
 package plm.hmm;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
-
-import com.google.common.collect.Lists;
-import com.statslibextensions.statistics.ExtSamplingUtils;
-
-import gov.sandia.cognition.learning.algorithm.hmm.HiddenMarkovModel;
-import gov.sandia.cognition.math.UnivariateStatisticsUtil;
 import gov.sandia.cognition.math.matrix.Matrix;
 import gov.sandia.cognition.math.matrix.Vector;
 import gov.sandia.cognition.math.matrix.mtj.DenseMatrix;
@@ -18,8 +9,11 @@ import gov.sandia.cognition.statistics.bayesian.KalmanFilter;
 import gov.sandia.cognition.statistics.distribution.MultivariateGaussian;
 import gov.sandia.cognition.util.AbstractCloneableSerializable;
 import gov.sandia.cognition.util.ObjectUtil;
-import gov.sandia.cognition.util.Pair;
-import gov.sandia.cognition.util.WeightedValue;
+
+import java.util.List;
+import java.util.Random;
+
+import com.google.common.collect.Lists;
 
 public class DlmHiddenMarkovModel extends AbstractCloneableSerializable implements GenericHMM<Vector, Vector, MultivariateGaussian> {
 

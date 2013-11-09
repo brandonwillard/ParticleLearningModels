@@ -2,7 +2,6 @@ package plm.logit.fruehwirth;
 
 import gov.sandia.cognition.math.matrix.Vector;
 import gov.sandia.cognition.statistics.bayesian.KalmanFilter;
-import gov.sandia.cognition.statistics.distribution.InverseGammaDistribution;
 import gov.sandia.cognition.statistics.distribution.MultivariateGaussian;
 import gov.sandia.cognition.statistics.distribution.UnivariateGaussian;
 import gov.sandia.cognition.util.AbstractCloneableSerializable;

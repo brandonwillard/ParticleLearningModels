@@ -2,13 +2,10 @@ package plm.regularization.lasso;
 
 import gov.sandia.cognition.math.LogMath;
 import gov.sandia.cognition.math.matrix.Matrix;
-import gov.sandia.cognition.math.matrix.MatrixFactory;
 import gov.sandia.cognition.math.matrix.Vector;
-import gov.sandia.cognition.math.matrix.VectorFactory;
 import gov.sandia.cognition.statistics.DataDistribution;
 import gov.sandia.cognition.statistics.bayesian.AbstractParticleFilter;
 import gov.sandia.cognition.statistics.distribution.DefaultDataDistribution;
-import gov.sandia.cognition.statistics.distribution.ExponentialDistribution;
 import gov.sandia.cognition.statistics.distribution.MultivariateGaussian;
 import gov.sandia.cognition.util.AbstractCloneableSerializable;
 

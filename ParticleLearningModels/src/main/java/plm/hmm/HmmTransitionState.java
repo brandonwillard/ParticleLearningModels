@@ -1,15 +1,13 @@
 package plm.hmm;
 
-import java.util.List;
-
-import plm.hmm.gaussian.GaussianArHpTransitionState;
-
-import com.google.common.collect.Lists;
-import com.statslibextensions.util.ObservedValue;
-import com.statslibextensions.util.CountedWeightedValue;
-
 import gov.sandia.cognition.util.AbstractCloneableSerializable;
 import gov.sandia.cognition.util.WeightedValue;
+
+import java.util.List;
+
+import com.google.common.collect.Lists;
+import com.statslibextensions.util.CountedWeightedValue;
+import com.statslibextensions.util.ObservedValue;
 
 /**
  * A simple class for tracking hidden state histories in a hidden markov model.

@@ -1,6 +1,6 @@
 package plm.hmm.gaussian;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 import gov.sandia.cognition.learning.algorithm.hmm.HiddenMarkovModel;
 import gov.sandia.cognition.math.matrix.Matrix;
 import gov.sandia.cognition.math.matrix.MatrixFactory;
@@ -23,7 +23,6 @@ import plm.hmm.HmmResampleComparisonRunner;
 import plm.hmm.StandardHMM;
 
 import com.google.common.collect.Lists;
-import com.statslibextensions.statistics.CountedDataDistribution;
 import com.statslibextensions.util.ObservedValue;
 
 public class GaussianArHmmMkfFilterTest {

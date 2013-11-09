@@ -1,11 +1,7 @@
 package plm.logit.polyagamma;
 
 import gov.sandia.cognition.math.matrix.Vector;
-import gov.sandia.cognition.statistics.Distribution;
-import gov.sandia.cognition.statistics.distribution.ExponentialDistribution;
 import gov.sandia.cognition.statistics.distribution.MultivariateGaussian;
-import gov.sandia.cognition.statistics.distribution.UnivariateGaussian;
-import gov.sandia.cognition.util.AbstractCloneableSerializable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,7 +10,6 @@ import java.util.Random;
 import com.google.common.collect.Lists;
 import com.statslibextensions.statistics.distribution.PolyaGammaDistribution;
 import com.statslibextensions.statistics.distribution.ScaledInverseGammaCovDistribution;
-import com.statslibextensions.util.ExtStatisticsUtils;
 
 /**
  * 

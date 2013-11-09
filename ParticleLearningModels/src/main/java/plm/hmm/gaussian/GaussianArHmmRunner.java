@@ -10,32 +10,24 @@ import gov.sandia.cognition.math.matrix.VectorFactory;
 import gov.sandia.cognition.math.signals.LinearDynamicalSystem;
 import gov.sandia.cognition.statistics.DataDistribution;
 import gov.sandia.cognition.statistics.bayesian.KalmanFilter;
-import gov.sandia.cognition.statistics.bayesian.ParticleFilter;
 import gov.sandia.cognition.statistics.distribution.UnivariateGaussian;
-import gov.sandia.cognition.util.Pair;
-import gov.sandia.cognition.util.WeightedValue;
 
 import java.io.FileWriter;
 import java.io.IOException;
-import java.math.RoundingMode;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import plm.hmm.DlmHiddenMarkovModel;
+import plm.hmm.GenericHMM.SimHmmObservedValue;
 import plm.hmm.HmmPlFilter;
 import plm.hmm.HmmResampleComparisonRunner;
-import plm.hmm.HmmTransitionState;
-import plm.hmm.GenericHMM.SimHmmObservedValue;
-import plm.hmm.HmmTransitionState.ResampleType;
 import plm.hmm.StandardHMM;
 import au.com.bytecode.opencsv.CSVWriter;
 
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
-import com.google.common.math.DoubleMath;
-import com.statslibextensions.statistics.CountedDataDistribution;
-import com.statslibextensions.statistics.ExtSamplingUtils;
+import com.statslibextensions.statistics.distribution.CountedDataDistribution;
 import com.statslibextensions.util.ObservedValue;
 
 public class GaussianArHmmRunner extends HmmResampleComparisonRunner {

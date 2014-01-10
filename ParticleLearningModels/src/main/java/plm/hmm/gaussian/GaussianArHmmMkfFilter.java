@@ -102,8 +102,8 @@ public class GaussianArHmmMkfFilter
     final CountedDataDistribution<GaussianArTransitionState> propogatedParticles = new CountedDataDistribution<GaussianArTransitionState>(true);
     for (final GaussianArTransitionState particle : target.getDomain()) {
       final StandardHMM<Double> hmm = particle.getHmm();
-//      final int particleCount =
-//          ((CountedDataDistribution) target).getCount(particle);
+      final int particleCount =
+          ((CountedDataDistribution) target).getCount(particle);
 
       double particleLogLik = Double.NEGATIVE_INFINITY;
 
@@ -150,7 +150,7 @@ public class GaussianArHmmMkfFilter
 //      final double transitionLogLik = transitionDist.getLogFraction(newState);
       newState.setStateLogWeight(particleLogLik);
 
-      propogatedParticles.increment(newState, particleLogLik);
+      propogatedParticles.increment(newState, particleLogLik, particleCount);
     }
 
     // TODO determine when to resample
@@ -164,6 +164,9 @@ public class GaussianArHmmMkfFilter
     } else {
       resampledDist = propogatedParticles;
     }
+
+    Preconditions.checkState(((CountedDataDistribution) resampledDist)
+        .getTotalCount() == this.numParticles);
 
     target.clear();
     for (GaussianArTransitionState state : resampledDist.getDomain()) {

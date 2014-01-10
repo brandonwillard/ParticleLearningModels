@@ -27,8 +27,9 @@ import com.statslibextensions.statistics.distribution.WFCountedDataDistribution;
 import com.statslibextensions.util.ObservedValue;
 
 /**
- * A Particle Learning filter for a multivariate Gaussian AR(1) model
- * with hyper priors and parameter learning.
+ * A Particle Learning filter for a multivariate Gaussian AR(1) mixture obs model
+ * with shared state and obs covariance hyper priors (via parameter learning) 
+ * where the mixture components follow a HMM.
  * 
  * @author bwillard
  * 

@@ -135,7 +135,7 @@ public class LassoRegressionPLFilter
     }
 
     final List<LassoRegressionDistribution> resampledParticles =
-        ExtSamplingUtils.sampleMultipleLogScale(cumulativeLogLikelihoods, particleTotalLogLikelihood,
+        ExtSamplingUtils.sampleReplaceCumulativeLogScale(cumulativeLogLikelihoods, 
             particleSupport, random, this.numParticles);
 
     /*

@@ -96,10 +96,11 @@ public abstract class HmmPlFilter<HmmType extends GenericHMM<ResponseType, ?, ?>
                 + Math.log(hmm.getTransitionProbability().getElement(
                     i, particle.getClassId()));
 
-        logLikelihoods.addAll(Collections.nCopies(particleCount,
-            transStateLogLik));
+        logLikelihoods.add(transStateLogLik);
         particleSupport.add(transState);
         if (particleCount - 1 > 0) {
+          logLikelihoods.addAll(Collections.nCopies(
+              particleCount - 1, transStateLogLik));
           // FIXME this casting is no good.
           particleSupport.addAll(Collections.nCopies(
               particleCount - 1, (ParticleType)transState.clone()));
@@ -116,9 +117,9 @@ public abstract class HmmPlFilter<HmmType extends GenericHMM<ResponseType, ?, ?>
     if (this.resampleOnly) {
       resampledParticles = new CountedDataDistribution<ParticleType>(true);
       resampledParticles.incrementAll(ExtSamplingUtils
-          .sampleMultipleLogScale(
+          .sampleReplaceCumulativeLogScale(
               ExtSamplingUtils.accumulate(logLikelihoods),
-              particleTotalLogLikelihood, particleSupport,
+              particleSupport,
               this.random, this.numParticles));
       resampleType = ResampleType.REPLACEMENT;
     } else {

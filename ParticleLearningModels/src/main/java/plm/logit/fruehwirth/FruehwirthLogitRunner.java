@@ -27,25 +27,6 @@ import com.statslibextensions.util.ObservedValue.SimObservedValue;
  */
 public class FruehwirthLogitRunner {
   
-  public static class LogitTrueState {
-    protected Vector state;
-    protected double logitSample;
-
-    public LogitTrueState(Vector state, double logitSample) {
-      this.state = state;
-      this.logitSample = logitSample;
-    }
-
-    @Override
-    public String toString() {
-      StringBuilder builder = new StringBuilder();
-      builder.append("LogitTrueState [state=").append(this.state)
-          .append(", logitSample=").append(this.logitSample).append("]");
-      return builder.toString();
-    }
-    
-  }
-
   public static void main(String[] args) {
 
 
@@ -82,14 +63,16 @@ public class FruehwirthLogitRunner {
     List<SimObservedValue<Vector, Matrix, Vector>> dlmSamples = DlmUtils.sampleDlm(
         rng, N, trueInitialPrior, initialFilter);
     for (SimObservedValue<Vector, Matrix, Vector> samplePair : dlmSamples) {
-      final double logitSample = ev1Dist.sample(rng);
-      final double augObs = samplePair.getObservedValue().getElement(0) + logitSample;
-      final double obs = (augObs > 0d) ? 1d : 0d;
+      final double ev1Upper = -Math.log(-Math.log(rng.nextDouble()));
+      final double upperUtility = samplePair.getObservedValue().getElement(0) +
+          ev1Upper;
+      final double lowerUtility = -Math.log(-Math.log(rng.nextDouble()));
+      final double obs = (upperUtility > lowerUtility) ? 1d : 0d;
       observations.add(
           SimObservedValue.<Vector, Matrix, LogitTrueState>create(
               VectorFactory.getDefault().copyValues(obs),
-              initialFilter.getModel().getC(),
-              new LogitTrueState(samplePair.getTrueState(), logitSample)));
+              samplePair.getObservedData(),
+              new LogitTrueState(samplePair.getTrueState(), upperUtility, ev1Upper, lowerUtility)));
     }
 
     /*
@@ -109,8 +92,8 @@ public class FruehwirthLogitRunner {
         {0d, 0d},
         {0d, 0d}});
     final FruehwirthLogitPLFilter plFilter =
-        new FruehwirthLogitPLFilter(initialPrior, F, G, modelCovariance, rng, false);
-    plFilter.setNumParticles(50);
+        new FruehwirthLogitPLFilter(initialPrior, F, G, modelCovariance, true, rng);
+    plFilter.setNumParticles(10000);
 
     final DataDistribution<FruehwirthLogitParticle> currentMixtureDistribution =
         plFilter.createInitialLearnedObject();
@@ -123,20 +106,19 @@ public class FruehwirthLogitRunner {
        * Compute some summary stats. TODO We need to compute something informative for this
        * situation.
        */
-      final UnivariateGaussian.SufficientStatistic rmseSuffStat =
-          new UnivariateGaussian.SufficientStatistic();
+      double rmseMean = 0d;
 
       for (Entry<FruehwirthLogitParticle, ? extends Number> particleEntry : 
         currentMixtureDistribution.asMap().entrySet()) {
         final Vector trueState = dlmSamples.get(i).getTrueState();
         final Vector particleState = particleEntry.getKey().getLinearState().getMean();
         final double rse = Math.sqrt(trueState.minus(particleState).norm2());
-        System.out.println("true: " + trueState + ", particle:" + particleState);
+//        System.out.println("true: " + trueState + ", particle:" + particleState);
 
-        rmseSuffStat.update(rse * Math.exp(particleEntry.getValue().doubleValue()));
+        rmseMean += rse * Math.exp(particleEntry.getValue().doubleValue());
       }
-      System.out.println("posterior RMSE: " + rmseSuffStat.getMean()
-          + " (" + rmseSuffStat.getVariance() + ")");
+      System.out.println("posterior RMSE mean: " + rmseMean);
+//          + " (" + rmseVar + ")");
     }
 
     System.out.println("finished simulation");

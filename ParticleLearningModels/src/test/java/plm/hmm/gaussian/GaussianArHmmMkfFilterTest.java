@@ -37,7 +37,7 @@ public class GaussianArHmmMkfFilterTest {
     final Random random = new Random(seed);
     log.info("seed=" + seed);
 
-    final int N = 10;
+    final int N = 10000;
 
     final double[] a = {0.9d, 0.9d};
     final double[] sigma2 = {Math.pow(0.2d, 2), Math.pow(1.2d, 2)};

@@ -45,7 +45,8 @@ public class GaussianArHmmClassEvaluator {
         evaluatorType, resampleType.toString(), 
         Double.toString(classificationRate.getSum().value)
        };
-    this.writer.writeNext(wfClassLine);
+    if (this.writer != null)
+      this.writer.writeNext(wfClassLine);
   }
 
   public RingAccumulator<MutableDouble> getTotalRate() {

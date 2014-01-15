@@ -129,6 +129,33 @@ public class GaussianArHpEvaluator {
           distribution.getMaxValueKey().getResampleType().toString(), 
           Double.toString(stateLastRmse)};
       writer.writeNext(line3);
+
+      String[] line11 = {
+          Integer.toString(replication), 
+          Long.toString(obs.getTime()), 
+          this.modelId,
+          "psi", 
+          distribution.getMaxValueKey().getResampleType().toString(), 
+          Double.toString(psiLastErrRate)};
+      writer.writeNext(line11);
+
+      String[] line22 = {
+          Integer.toString(replication), 
+          Long.toString(obs.getTime()), 
+          this.modelId,
+          "sigma2", 
+          distribution.getMaxValueKey().getResampleType().toString(), 
+          Double.toString(sigma2LastErrRate)};
+      writer.writeNext(line22);
+
+      String[] line33 = {
+          Integer.toString(replication), 
+          Long.toString(obs.getTime()), 
+          this.modelId,
+          "state", 
+          distribution.getMaxValueKey().getResampleType().toString(), 
+          Double.toString(stateLastErrRate)};
+      writer.writeNext(line33);
     }
     
   }

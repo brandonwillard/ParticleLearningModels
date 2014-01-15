@@ -23,6 +23,7 @@ public class GaussianArHpWfParticle extends AbstractCloneableSerializable {
   private MultivariateGaussian psiSS;
   private double sigma2Sample;
   private ResampleType resampleType;
+  private Vector psiSample;
 
   public ResampleType getResampleType() {
     return resampleType;
@@ -31,15 +32,18 @@ public class GaussianArHpWfParticle extends AbstractCloneableSerializable {
   public GaussianArHpWfParticle(KalmanFilter thisKf,
       ObservedValue<Vector, ?> create, MultivariateGaussian priorState,
       Vector priorStateSample, InverseGammaDistribution priorSigma2,
-      MultivariateGaussian priorPsi, double sigma2Sample) {
-    this(null, thisKf, create, priorState, priorStateSample, priorSigma2, priorPsi, sigma2Sample);
+      MultivariateGaussian priorPsi, double sigma2Sample, Vector psiPriorSmpl) {
+    this(null, thisKf, create, 
+        priorState, priorStateSample, 
+        priorSigma2, priorPsi, 
+        sigma2Sample, psiPriorSmpl);
   }
 
   public GaussianArHpWfParticle(GaussianArHpWfParticle prevParticle,
       KalmanFilter kf, ObservedValue<Vector, ?> obs,
       MultivariateGaussian state, Vector stateSample,
       InverseGammaDistribution sigma2SS, MultivariateGaussian psiSS,
-      double sigma2Sample) {
+      double sigma2Sample, Vector psiPriorSmpl) {
     this.prevParticle = prevParticle;
     this.kf = kf;
     this.obs = obs;
@@ -48,6 +52,19 @@ public class GaussianArHpWfParticle extends AbstractCloneableSerializable {
     this.sigma2SS = sigma2SS;
     this.psiSS = psiSS;
     this.sigma2Sample = sigma2Sample;
+    this.psiSample = psiPriorSmpl;
+  }
+
+  public KalmanFilter getKf() {
+    return kf;
+  }
+
+  public ObservedValue<Vector, ?> getObs() {
+    return obs;
+  }
+
+  public Vector getPsiSample() {
+    return psiSample;
   }
 
   public KalmanFilter getFilter() {

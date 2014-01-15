@@ -10,7 +10,6 @@ import gov.sandia.cognition.statistics.bayesian.AbstractParticleFilter;
 import gov.sandia.cognition.statistics.bayesian.KalmanFilter;
 import gov.sandia.cognition.statistics.distribution.InverseGammaDistribution;
 import gov.sandia.cognition.statistics.distribution.MultivariateGaussian;
-import gov.sandia.cognition.statistics.distribution.MultivariateStudentTDistribution;
 import gov.sandia.cognition.util.AbstractCloneableSerializable;
 
 import java.util.Collections;
@@ -38,12 +37,12 @@ import com.statslibextensions.util.ObservedValue;
  * Each step for a particle samples AR(1) components multiple times; all combined
  * particle samples are then resampled via water-filled. 
  * 
- * This version integrates out sigma2, utilizing t-distributions.
+ * This version samples intermediate sigma2 values.
  * 
  * @author bwillard
  * 
  */
-public class GaussianArHpWfPlFilter extends AbstractParticleFilter<ObservedValue<Vector, ?>, GaussianArHpWfParticle> {
+public class GaussianArHpWfPlFilterV2 extends AbstractParticleFilter<ObservedValue<Vector, ?>, GaussianArHpWfParticle> {
   public class GaussianArHpWfPlUpdater extends AbstractCloneableSerializable implements
       Updater<ObservedValue<Vector, ?>, GaussianArHpWfParticle> {
 
@@ -60,8 +59,6 @@ public class GaussianArHpWfPlFilter extends AbstractParticleFilter<ObservedValue
 
     final protected KalmanFilter initialKf;
     final protected Random rng;
-    final protected Matrix Iy;
-    final protected Matrix Ix;
     
     public GaussianArHpWfPlUpdater(KalmanFilter kf, 
         InverseGammaDistribution priorSigma2, 
@@ -70,45 +67,24 @@ public class GaussianArHpWfPlFilter extends AbstractParticleFilter<ObservedValue
       this.initialKf = kf;
       this.initialPriorSigma2 = priorSigma2;
       this.initialPriorPsi = priorPsi;
-      this.Iy = MatrixFactory.getDefault().createIdentity(
-          kf.getModel().getOutputDimensionality(), 
-          kf.getModel().getOutputDimensionality());
-      this.Ix = MatrixFactory.getDefault().createIdentity(
-          kf.getModel().getInputDimensionality(), 
-          kf.getModel().getInputDimensionality());
     }
 
     @Override
     public double computeLogLikelihood(
-      GaussianArHpWfParticle transParticle,
+      GaussianArHpWfParticle transState,
       ObservedValue<Vector,?> observation) {
 
-      final MultivariateGaussian priorPsi = transParticle.getPsiSS();
-      final KalmanFilter kf = transParticle.getFilter();
-
-      final int xDim = kf.getModel().getInputDimensionality();
-      final Matrix H = MatrixFactory.getDefault().createMatrix(xDim, xDim * 2);
-      H.setSubMatrix(0, 0, Ix);
-      H.setSubMatrix(0, xDim, 
-          // x_{t-1}
-          MatrixFactory.getDefault().createDiagonal(transParticle.getStateSample()));
-
+      final MultivariateGaussian priorPredState = transState.getState();
+      final KalmanFilter kf = transState.getFilter();
       /*
        * Construct the measurement prior predictive likelihood
-       * t_n (H*m^psi, d*C^psi/n) 
        */
-      final Vector mPriorPredMean = H.times(priorPsi.getMean());
-      final Matrix mPriorPredCov = H.times(priorPsi.getCovariance()).times(H.transpose())
-          .plus(Iy.scale(2d));
-
-      // TODO FIXME
-      final Matrix stPriorPredPrec = mPriorPredCov.inverse().scale(
-          transParticle.getSigma2SS().getShape()/transParticle.getSigma2SS().getScale());
-
-
-      MultivariateStudentTDistribution mPriorPredDist = new MultivariateStudentTDistribution(
-          transParticle.getSigma2SS().getShape(), 
-          mPriorPredMean, stPriorPredPrec);
+      final Vector mPriorPredMean = kf.getModel().getC().times(priorPredState.getMean());
+      final Matrix mPriorPredCov = kf.getModel().getC().times(priorPredState.getCovariance())
+          .times(kf.getModel().getC().transpose())
+          .plus(kf.getMeasurementCovariance());
+      final MultivariateGaussian mPriorPredDist = new MultivariateGaussian(
+          mPriorPredMean, mPriorPredCov); 
 
       final double logCt = mPriorPredDist.getProbabilityFunction().logEvaluate(
           observation.getObservedValue());
@@ -123,7 +99,7 @@ public class GaussianArHpWfPlFilter extends AbstractParticleFilter<ObservedValue
           CountedDataDistribution.create(numParticles, true);
       for (int i = 0; i < numParticles; i++) {
 
-        final InverseGammaDistribution thisSigma2Prior = this.initialPriorSigma2.clone();
+        final InverseGammaDistribution thisPriorScale = this.initialPriorSigma2.clone();
 
         final KalmanFilter thisKf = this.initialKf.clone();
         /*
@@ -132,44 +108,45 @@ public class GaussianArHpWfPlFilter extends AbstractParticleFilter<ObservedValue
          * As well, we need to set/reset the kalman filters to adhere
          * to the intended model.
          */
+        final double scaleSample = thisPriorScale.sample(this.rng);
 
-        final MultivariateGaussian thisPsiPrior = initialPriorPsi.clone();
+        final MultivariateGaussian thisPriorOffset = initialPriorPsi.clone();
 
-        final Vector psiSample = thisPsiPrior.sample(this.rng);
-        final Vector alphaTerm = psiSample.subVector(0, 
-            psiSample.getDimensionality()/2 - 1);
-        thisKf.getModel().setState(alphaTerm);
-        thisKf.setCurrentInput(alphaTerm);
+        final Vector systemSample = thisPriorOffset.sample(this.rng);
+        final Vector offsetTerm = systemSample.subVector(0, 
+            systemSample.getDimensionality()/2 - 1);
+        thisKf.getModel().setState(offsetTerm);
+        thisKf.setCurrentInput(offsetTerm);
 
-        final Matrix betaTerm = MatrixFactory.getDefault().createDiagonal(
-            psiSample.subVector(
-                psiSample.getDimensionality()/2, 
-                psiSample.getDimensionality() - 1));
-        thisKf.getModel().setA(betaTerm);
+        final Matrix A = MatrixFactory.getDefault().createDiagonal(
+            systemSample.subVector(
+                systemSample.getDimensionality()/2, 
+                systemSample.getDimensionality() - 1));
+        thisKf.getModel().setA(A);
 
         final Matrix offsetIdent = MatrixFactory.getDefault().createIdentity(
-            psiSample.getDimensionality()/2, psiSample.getDimensionality()/2);
+            systemSample.getDimensionality()/2, systemSample.getDimensionality()/2);
         thisKf.getModel().setB(offsetIdent);
 
-        final Matrix measIdent = Iy.clone();
-        thisKf.setMeasurementCovariance(measIdent);
+        final Matrix measIdent = MatrixFactory.getDefault().createIdentity(
+            thisKf.getModel().getOutputDimensionality(), 
+            thisKf.getModel().getOutputDimensionality());
+        thisKf.setMeasurementCovariance(measIdent.scale(scaleSample));
 
-        final Matrix modelIdent = Ix.clone();
-        thisKf.setModelCovariance(modelIdent);
+        final Matrix modelIdent = MatrixFactory.getDefault().createIdentity(
+            thisKf.getModel().getStateDimensionality(), 
+            thisKf.getModel().getStateDimensionality());
+        thisKf.setModelCovariance(modelIdent.scale(scaleSample));
 
         final MultivariateGaussian priorState = thisKf.createInitialLearnedObject();
         final Vector priorStateSample = priorState.sample(this.rng);
-
-        // TODO not really necessary, now?
-        final double scaleSample = Double.NaN;//thisSigma2Prior.sample(this.rng);
 
         final GaussianArHpWfParticle particle =
             new GaussianArHpWfParticle(thisKf, 
                 ObservedValue.<Vector>create(0, null), priorState, 
                 priorStateSample,
-                thisSigma2Prior, thisPsiPrior,
-                scaleSample, psiSample);
-        
+                thisPriorScale, thisPriorOffset,
+                scaleSample, null);
         particle.setResampleType(ResampleType.NONE);
 
         final double logWeight = -Math.log(numParticles);
@@ -185,139 +162,114 @@ public class GaussianArHpWfPlFilter extends AbstractParticleFilter<ObservedValue
 
       final MultivariateGaussian posteriorState = predState.getState().clone();
       final KalmanFilter kf = predState.getFilter().clone();
+      kf.update(posteriorState, predState.getObservation().getObservedValue());
 
       /*
        * The following are the parameter learning updates;
        * they can be done off-line, but we'll do them now.
        * TODO FIXME check that the input/offset thing is working!
        */
+      final InverseGammaDistribution scaleSS = predState.getSigma2SS().clone();
+      final MultivariateGaussian systemOffsetsSS = predState.getPsiSS().clone();
 
       final int xDim = posteriorState.getInputDimensionality();
+      final Matrix Ij = MatrixFactory.getDefault().createIdentity(xDim, xDim);
       final Matrix H = MatrixFactory.getDefault().createMatrix(xDim, xDim * 2);
-      H.setSubMatrix(0, 0, Ix);
-      H.setSubMatrix(0, xDim, 
-          // x_{t-1}
-          MatrixFactory.getDefault().createDiagonal(predState.getStateSample()));
+      H.setSubMatrix(0, 0, Ij);
+      H.setSubMatrix(0, xDim, MatrixFactory.getDefault().createDiagonal(predState.getStateSample()));
+      final Vector postStateSample = posteriorState.sample(this.rng);
+      final MultivariateGaussian priorPhi = predState.getPsiSS();
+      final Vector phiPriorSmpl = priorPhi.sample(this.rng);
+      final Vector xHdiff = postStateSample.minus(H.times(phiPriorSmpl));
 
-      final InverseGammaDistribution sigma2SS = predState.getSigma2SS().clone();
-      // TODO FIXME matrix inverse!!
-      final Matrix postStatePrec = posteriorState.getCovarianceInverse().scale(
-          sigma2SS.getShape()/sigma2SS.getScale());
-      MultivariateStudentTDistribution postStateMarginal = new MultivariateStudentTDistribution(
-          sigma2SS.getShape(), 
-          posteriorState.getMean(), postStatePrec);
-      final Vector postStateSample = postStateMarginal.sample(this.rng);
+      final double newN = scaleSS.getShape() + 1d;
+      final double d = scaleSS.getScale() + xHdiff.dotProduct(xHdiff);
       
-      final Vector psiPriorSmpl = predState.getPsiSample(); 
-      // x_t
-      final Vector xHdiff = postStateSample.minus(H.times(psiPriorSmpl));
-
+      scaleSS.setScale(d);
+      scaleSS.setShape(newN);
+      
+      // FIXME TODO: crappy sampler
+      final double newScaleSmpl = scaleSS.sample(this.rng);
+      
       /*
-       * 1. Update the sigma2 sufficient stats.
+       * Update state and measurement covariances, which
+       * have a strict dependency in this model (equality).
        */
-      final double newN = sigma2SS.getShape() + 1d;
-      final double d = sigma2SS.getScale() + xHdiff.dotProduct(xHdiff);
-      sigma2SS.setScale(d);
-      sigma2SS.setShape(newN);
-      
+      kf.setMeasurementCovariance(MatrixFactory.getDefault().createDiagonal(
+          VectorFactory.getDefault().createVector(kf.getModel().getOutputDimensionality(), 
+              newScaleSmpl)));
+
+      kf.setModelCovariance(MatrixFactory.getDefault().createDiagonal(
+          VectorFactory.getDefault().createVector(kf.getModel().getStateDimensionality(), 
+              newScaleSmpl)));
+
       /*
-       * 2. Update psi sufficient stats. (i.e. offset and AR(1)).
-       * 
+       * Update offset and AR(1) prior(s).
        * Note that we divide out the previous scale param, since
        * we want to update A alone.
-       * TODO FIXME inverse!  ewww.
        */
-      final Matrix priorAInv = predState.getPsiSS().getCovarianceInverse();
+      final Matrix priorAInv = priorPhi.getCovariance().scale(1d/predState.getSigma2Sample()).inverse();
       /*
        * TODO FIXME: we don't have a generalized outer product, so we're only
        * supporting the 1d case for now.
        */
       final Vector Hv = H.convertToVector();
-      /*
-       * TODO FIXME inverse!  ewww.
-       */
       final Matrix postAInv = priorAInv.plus(Hv.outerProduct(Hv)).inverse();
-      final Vector postPsiMean = postAInv.times(priorAInv.times(psiPriorSmpl).plus(
+      // TODO FIXME: ewww.  inverse.
+      final Vector postPhiMean = postAInv.times(priorAInv.times(phiPriorSmpl).plus(
           H.transpose().times(postStateSample)));
-      final MultivariateGaussian postPsi = predState.getPsiSS().clone();
-      postPsi.setMean(postPsiMean);
-      postPsi.setCovariance(postAInv);
+      final MultivariateGaussian postPhi = systemOffsetsSS;
+      postPhi.setMean(postPhiMean);
+      postPhi.setCovariance(postAInv.scale(newScaleSmpl));
       
-      final double newScaleSmpl = Double.NaN;//sigma2SS.sample(this.rng);
+      final Vector postPhiSmpl = postPhi.sample(this.rng);
+      final Matrix smplArTerms = MatrixFactory.getDefault().createDiagonal(
+          postPhiSmpl.subVector(
+              postPhiSmpl.getDimensionality()/2, 
+              postPhiSmpl.getDimensionality() - 1));
+      kf.getModel().setA(smplArTerms);
+
+      final Vector smplOffsetTerm = postPhiSmpl.subVector(0, 
+              postPhiSmpl.getDimensionality()/2 - 1);
+      kf.getModel().setState(smplOffsetTerm);
+      kf.setCurrentInput(smplOffsetTerm);
+  
       final GaussianArHpWfParticle postState =
           new GaussianArHpWfParticle(kf, predState.getObservation(), 
-              posteriorState, postStateSample, 
-              sigma2SS, postPsi, 
-              newScaleSmpl, predState.getPsiSample());
+              posteriorState, postStateSample, scaleSS, systemOffsetsSS, newScaleSmpl, null);
 
       return postState;
     }
 
   }
 
-  final Logger log = Logger.getLogger(GaussianArHpWfPlFilter.class);
+  final Logger log = Logger.getLogger(GaussianArHpWfPlFilterV2.class);
   final int numSubSamples;
-  final protected Matrix Iy;
-  final protected Matrix Ix;
 
-  public GaussianArHpWfPlFilter(KalmanFilter kf, 
+  public GaussianArHpWfPlFilterV2(KalmanFilter kf, 
       InverseGammaDistribution priorScale, MultivariateGaussian priorSysOffset,
       Random rng, int numSubSamples, boolean resampleOnly) {
     this.numSubSamples = numSubSamples;
     this.setUpdater(new GaussianArHpWfPlUpdater(kf, priorScale, priorSysOffset, rng));
     this.setRandom(rng);
-    this.Iy = MatrixFactory.getDefault().createIdentity(
-        kf.getModel().getOutputDimensionality(), 
-        kf.getModel().getOutputDimensionality());
-    this.Ix = MatrixFactory.getDefault().createIdentity(
-        kf.getModel().getInputDimensionality(), 
-        kf.getModel().getInputDimensionality());
   }
 
   protected GaussianArHpWfParticle propagate(
       GaussianArHpWfParticle prevState, ObservedValue<Vector,?> data) {
     /*
-     * Sample psi
+     * Perform the filtering step
      */
-    final MultivariateGaussian priorPsi = prevState.getPsiSS();
-    final Vector priorPsiSmpl = priorPsi.sample(this.getRandom());
-
+    MultivariateGaussian priorPredictedState = prevState.getState().clone(); 
     final KalmanFilter kf = prevState.getFilter().clone();
-
-    /*
-     * Update the filter parameters with the new psi.
-     */
-    final Matrix smplArTerms = MatrixFactory.getDefault().createDiagonal(
-        priorPsiSmpl.subVector(
-            priorPsiSmpl.getDimensionality()/2, 
-            priorPsiSmpl.getDimensionality() - 1));
-    kf.getModel().setA(smplArTerms);
-
-    final Vector smplOffsetTerm = priorPsiSmpl.subVector(0, 
-            priorPsiSmpl.getDimensionality()/2 - 1);
-    kf.getModel().setState(smplOffsetTerm);
-    kf.setCurrentInput(smplOffsetTerm);
-  
-    /*
-     * Perform the Kalman update to get the posterior state suff. stats.
-     */
-    final InverseGammaDistribution priorSigma2 = prevState.getSigma2SS().clone();
-    final double sigma2Sample = priorSigma2.sample(this.getRandom()); 
-    MultivariateGaussian posteriorState = prevState.getState().clone(); 
-    // TODO FIXME gross hack!
-    posteriorState.getCovariance().scaleEquals(sigma2Sample);
-    kf.setMeasurementCovariance(Iy.scale(sigma2Sample));
-    kf.setModelCovariance(Ix.scale(sigma2Sample));
-    kf.predict(posteriorState);
-    kf.update(posteriorState, data.getObservedValue());
-    kf.setMeasurementCovariance(Iy);
-    kf.setModelCovariance(Ix);
+    kf.predict(priorPredictedState);
     
+    final InverseGammaDistribution scaleSS = prevState.getSigma2SS().clone();
+    final MultivariateGaussian systemSS = prevState.getPsiSS().clone();
 
     final GaussianArHpWfParticle newTransState =
         new GaussianArHpWfParticle(prevState, kf,
-            data, posteriorState, prevState.getStateSample(), 
-            priorSigma2, priorPsi, sigma2Sample, priorPsiSmpl);
+            data, priorPredictedState, prevState.getStateSample(), 
+            scaleSS, systemSS, prevState.getSigma2Sample(), null);
 
     return newTransState;
   }
@@ -331,7 +283,7 @@ public class GaussianArHpWfPlFilter extends AbstractParticleFilter<ObservedValue
     ObservedValue<Vector, ?> data) {
 
     /*
-     * Propagate and compute prior predictive log likelihoods.
+     * Compute prior predictive log likelihoods for resampling.
      */
     double particleTotalLogLikelihood = Double.NEGATIVE_INFINITY;
     final List<Double> logLikelihoods = Lists.newArrayList();
@@ -348,12 +300,12 @@ public class GaussianArHpWfPlFilter extends AbstractParticleFilter<ObservedValue
 
       for (int i = 0; i < this.numSubSamples * particleCount; i++) {
 
-        final double transStateLogLik =
-            this.updater.computeLogLikelihood(particle, data)
-                + particlePriorLogLik;
-
         final GaussianArHpWfParticle transState =
             this.propagate(particle, data);
+
+        final double transStateLogLik =
+            this.updater.computeLogLikelihood(transState, data)
+                + particlePriorLogLik;
 
         logLikelihoods.add(transStateLogLik);
         particleSupport.add(transState);
@@ -379,7 +331,7 @@ public class GaussianArHpWfPlFilter extends AbstractParticleFilter<ObservedValue
               ResampleType.NO_REPLACEMENT;
 
     /*
-     * Update sufficient stats. 
+     * Propagate
      */
     final CountedDataDistribution<GaussianArHpWfParticle> updatedDist =
         new CountedDataDistribution<GaussianArHpWfParticle>(true);

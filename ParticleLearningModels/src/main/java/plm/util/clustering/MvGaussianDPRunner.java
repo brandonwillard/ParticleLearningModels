@@ -1,4 +1,4 @@
-package plm.clustering;
+package plm.util.clustering;
 
 import gov.sandia.cognition.math.MutableDouble;
 import gov.sandia.cognition.math.RingAccumulator;
@@ -15,6 +15,9 @@ import gov.sandia.cognition.statistics.distribution.UnivariateGaussian;
 
 import java.util.List;
 import java.util.Random;
+
+import plm.clustering.MvGaussianDPDistribution;
+import plm.clustering.MvGaussianDPPLFilter;
 
 import com.google.common.collect.Lists;
 

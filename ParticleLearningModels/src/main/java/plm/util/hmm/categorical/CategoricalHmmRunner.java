@@ -1,4 +1,4 @@
-package plm.hmm.categorical;
+package plm.util.hmm.categorical;
 
 import gov.sandia.cognition.learning.algorithm.hmm.HiddenMarkovModel;
 import gov.sandia.cognition.math.matrix.MatrixFactory;
@@ -9,9 +9,10 @@ import java.io.IOException;
 import java.util.Random;
 
 import plm.hmm.HmmPlFilter;
-import plm.hmm.HmmResampleComparisonRunner;
 import plm.hmm.HmmTransitionState;
 import plm.hmm.StandardHMM;
+import plm.hmm.categorical.CategoricalHmmPlFilter;
+import plm.util.hmm.HmmResampleComparisonRunner;
 
 import com.google.common.collect.Lists;
 

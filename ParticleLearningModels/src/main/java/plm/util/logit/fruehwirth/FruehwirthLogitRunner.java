@@ -1,4 +1,4 @@
-package plm.logit.fruehwirth;
+package plm.util.logit.fruehwirth;
 
 import gov.sandia.cognition.math.matrix.Matrix;
 import gov.sandia.cognition.math.matrix.MatrixFactory;
@@ -15,6 +15,9 @@ import gov.sandia.cognition.util.Pair;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Random;
+
+import plm.logit.fruehwirth.FruehwirthLogitPLFilter;
+import plm.logit.fruehwirth.FruehwirthLogitParticle;
 
 import com.google.common.collect.Lists;
 import com.statslibextensions.statistics.bayesian.DlmUtils;

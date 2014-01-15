@@ -28,6 +28,8 @@ import junit.framework.Assert;
 
 import org.junit.Test;
 
+import plm.util.logit.fruehwirth.LogitTrueState;
+
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.statslibextensions.statistics.bayesian.DlmUtils;

@@ -1,4 +1,4 @@
-package plm.hmm.gaussian;
+package plm.util.hmm.gaussian;
 
 import gov.sandia.cognition.math.MutableDouble;
 import gov.sandia.cognition.math.RingAccumulator;

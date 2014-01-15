@@ -1,4 +1,4 @@
-package plm.hmm.gaussian;
+package plm.util.hmm.gaussian;
 
 import gov.sandia.cognition.math.RingAccumulator;
 import gov.sandia.cognition.math.matrix.Vector;
@@ -9,11 +9,13 @@ import java.util.List;
 
 import plm.hmm.GenericHMM;
 import plm.hmm.GenericHMM.SimHmmObservedValue;
+import plm.hmm.gaussian.GaussianArHpTransitionState;
 import plm.hmm.HmmTransitionState;
 import au.com.bytecode.opencsv.CSVWriter;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.statslibextensions.util.ObservedValue;
 
 public class GaussianArHmmPsiLearningEvaluator {
 
@@ -60,6 +62,7 @@ public class GaussianArHmmPsiLearningEvaluator {
       }
     }
 
+    // TODO FIXME not implemented!
 //    for (Vector truePsi : this.truePsi) {
 //      final double rmse = stateMean.getSum().minus(truePsi).norm2();
 //      runningRate.accumulate(new MutableDouble(rmse));

@@ -40,37 +40,37 @@ import com.statslibextensions.util.ObservedValue;
  * @author bwillard
  * 
  */
-public class GaussianArHpWfPlFilter extends AbstractParticleFilter<ObservedValue<Vector, Void>, GaussianArHpWfParticle> {
+public class GaussianArHpWfPlFilter extends AbstractParticleFilter<ObservedValue<Vector, ?>, GaussianArHpWfParticle> {
   public class GaussianArHpWfPlUpdater extends AbstractCloneableSerializable implements
-      Updater<ObservedValue<Vector, Void>, GaussianArHpWfParticle> {
+      Updater<ObservedValue<Vector, ?>, GaussianArHpWfParticle> {
 
 
     /*
      * Prior scale mixure for system and measurement equations.
      */
-    final protected InverseGammaDistribution initialPriorScale;
+    final protected InverseGammaDistribution initialPriorSigma2;
 
     /*
-     * Prior system const. term offset and AR(1) as a stacked vector, respectively.
+     * Prior system const. and AR(1) terms as a stacked vector, in that order.
      */
-    final protected MultivariateGaussian initialPriorOffset;
+    final protected MultivariateGaussian initialPriorPsi;
 
     final protected KalmanFilter initialKf;
     final protected Random rng;
     
     public GaussianArHpWfPlUpdater(KalmanFilter kf, 
-        InverseGammaDistribution priorScale, 
-        MultivariateGaussian priorOffset, Random rng) {
+        InverseGammaDistribution priorSigma2, 
+        MultivariateGaussian priorPsi, Random rng) {
       this.rng = rng;
       this.initialKf = kf;
-      this.initialPriorScale = priorScale;
-      this.initialPriorOffset = priorOffset;
+      this.initialPriorSigma2 = priorSigma2;
+      this.initialPriorPsi = priorPsi;
     }
 
     @Override
     public double computeLogLikelihood(
       GaussianArHpWfParticle transState,
-      ObservedValue<Vector,Void> observation) {
+      ObservedValue<Vector,?> observation) {
 
       final MultivariateGaussian priorPredState = transState.getState();
       final KalmanFilter kf = transState.getFilter();
@@ -97,7 +97,7 @@ public class GaussianArHpWfPlFilter extends AbstractParticleFilter<ObservedValue
           CountedDataDistribution.create(numParticles, true);
       for (int i = 0; i < numParticles; i++) {
 
-        final InverseGammaDistribution thisPriorScale = this.initialPriorScale.clone();
+        final InverseGammaDistribution thisPriorScale = this.initialPriorSigma2.clone();
 
         final KalmanFilter thisKf = this.initialKf.clone();
         /*
@@ -108,7 +108,7 @@ public class GaussianArHpWfPlFilter extends AbstractParticleFilter<ObservedValue
          */
         final double scaleSample = thisPriorScale.sample(this.rng);
 
-        final MultivariateGaussian thisPriorOffset = initialPriorOffset.clone();
+        final MultivariateGaussian thisPriorOffset = initialPriorPsi.clone();
 
         final Vector systemSample = thisPriorOffset.sample(this.rng);
         final Vector offsetTerm = systemSample.subVector(0, 
@@ -166,8 +166,8 @@ public class GaussianArHpWfPlFilter extends AbstractParticleFilter<ObservedValue
        * they can be done off-line, but we'll do them now.
        * TODO FIXME check that the input/offset thing is working!
        */
-      final InverseGammaDistribution scaleSS = predState.getScaleSS().clone();
-      final MultivariateGaussian systemOffsetsSS = predState.getSystemOffsetSS().clone();
+      final InverseGammaDistribution scaleSS = predState.getSigma2SS().clone();
+      final MultivariateGaussian systemOffsetsSS = predState.getPsiSS().clone();
 
       final int xDim = posteriorState.getInputDimensionality();
       final Matrix Ij = MatrixFactory.getDefault().createIdentity(xDim, xDim);
@@ -175,7 +175,7 @@ public class GaussianArHpWfPlFilter extends AbstractParticleFilter<ObservedValue
       H.setSubMatrix(0, 0, Ij);
       H.setSubMatrix(0, xDim, MatrixFactory.getDefault().createDiagonal(predState.getStateSample()));
       final Vector postStateSample = posteriorState.sample(this.rng);
-      final MultivariateGaussian priorPhi = predState.getSystemOffsetSS();
+      final MultivariateGaussian priorPhi = predState.getPsiSS();
       final Vector phiPriorSmpl = priorPhi.sample(this.rng);
       final Vector xHdiff = postStateSample.minus(H.times(phiPriorSmpl));
 
@@ -205,7 +205,7 @@ public class GaussianArHpWfPlFilter extends AbstractParticleFilter<ObservedValue
        * Note that we divide out the previous scale param, since
        * we want to update A alone.
        */
-      final Matrix priorAInv = priorPhi.getCovariance().scale(1d/predState.getScaleSample()).inverse();
+      final Matrix priorAInv = priorPhi.getCovariance().scale(1d/predState.getSigma2Sample()).inverse();
       /*
        * TODO FIXME: we don't have a generalized outer product, so we're only
        * supporting the 1d case for now.
@@ -252,7 +252,7 @@ public class GaussianArHpWfPlFilter extends AbstractParticleFilter<ObservedValue
   }
 
   protected GaussianArHpWfParticle propagate(
-      GaussianArHpWfParticle prevState, ObservedValue<Vector,Void> data) {
+      GaussianArHpWfParticle prevState, ObservedValue<Vector,?> data) {
     /*
      * Perform the filtering step
      */
@@ -260,21 +260,24 @@ public class GaussianArHpWfPlFilter extends AbstractParticleFilter<ObservedValue
     final KalmanFilter kf = prevState.getFilter().clone();
     kf.predict(priorPredictedState);
     
-    final InverseGammaDistribution scaleSS = prevState.getScaleSS().clone();
-    final MultivariateGaussian systemSS = prevState.getSystemOffsetSS().clone();
+    final InverseGammaDistribution scaleSS = prevState.getSigma2SS().clone();
+    final MultivariateGaussian systemSS = prevState.getPsiSS().clone();
 
     final GaussianArHpWfParticle newTransState =
         new GaussianArHpWfParticle(prevState, kf,
             data, priorPredictedState, prevState.getStateSample(), 
-            scaleSS, systemSS, prevState.getScaleSample());
+            scaleSS, systemSS, prevState.getSigma2Sample());
 
     return newTransState;
   }
 
+  /**
+   * This update will split each particle off into K sub-samples, then water-fill.
+   */
   @Override
   public void update(
     DataDistribution<GaussianArHpWfParticle> target,
-    ObservedValue<Vector, Void> data) {
+    ObservedValue<Vector, ?> data) {
 
     /*
      * Compute prior predictive log likelihoods for resampling.

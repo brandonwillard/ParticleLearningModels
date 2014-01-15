@@ -16,34 +16,38 @@ public class GaussianArHpWfParticle extends AbstractCloneableSerializable {
   private double logWeight = Double.NEGATIVE_INFINITY;
   private GaussianArHpWfParticle prevParticle;
   private KalmanFilter kf;
-  private ObservedValue<Vector, Void> obs;
+  private ObservedValue<Vector, ?> obs;
   private MultivariateGaussian state;
   private Vector stateSample;
-  private InverseGammaDistribution scaleSS;
-  private MultivariateGaussian systemSS;
-  private double scaleSample;
+  private InverseGammaDistribution sigma2SS;
+  private MultivariateGaussian psiSS;
+  private double sigma2Sample;
   private ResampleType resampleType;
 
+  public ResampleType getResampleType() {
+    return resampleType;
+  }
+
   public GaussianArHpWfParticle(KalmanFilter thisKf,
-      ObservedValue<Vector, Void> create, MultivariateGaussian priorState,
-      Vector priorStateSample, InverseGammaDistribution thisPriorScale,
-      MultivariateGaussian thisPriorOffset, double scaleSample) {
-    this(null, thisKf, create, priorState, priorStateSample, thisPriorScale, thisPriorOffset, scaleSample);
+      ObservedValue<Vector, ?> create, MultivariateGaussian priorState,
+      Vector priorStateSample, InverseGammaDistribution priorSigma2,
+      MultivariateGaussian priorPsi, double sigma2Sample) {
+    this(null, thisKf, create, priorState, priorStateSample, priorSigma2, priorPsi, sigma2Sample);
   }
 
   public GaussianArHpWfParticle(GaussianArHpWfParticle prevParticle,
-      KalmanFilter kf, ObservedValue<Vector, Void> obs,
+      KalmanFilter kf, ObservedValue<Vector, ?> obs,
       MultivariateGaussian state, Vector stateSample,
-      InverseGammaDistribution scaleSS, MultivariateGaussian systemSS,
-      double scaleSample) {
+      InverseGammaDistribution sigma2SS, MultivariateGaussian psiSS,
+      double sigma2Sample) {
     this.prevParticle = prevParticle;
     this.kf = kf;
     this.obs = obs;
     this.state = state;
     this.stateSample = stateSample;
-    this.scaleSS = scaleSS;
-    this.systemSS = systemSS;
-    this.scaleSample = scaleSample;
+    this.sigma2SS = sigma2SS;
+    this.psiSS = psiSS;
+    this.sigma2Sample = sigma2Sample;
   }
 
   public KalmanFilter getFilter() {
@@ -58,24 +62,24 @@ public class GaussianArHpWfParticle extends AbstractCloneableSerializable {
     this.logWeight = logWeight; 
   }
 
-  public ObservedValue<Vector, Void> getObservation() {
+  public ObservedValue<Vector, ?> getObservation() {
     return this.obs;
   }
 
-  public InverseGammaDistribution getScaleSS() {
-    return this.scaleSS;
+  public InverseGammaDistribution getSigma2SS() {
+    return this.sigma2SS;
   }
 
-  public MultivariateGaussian getSystemOffsetSS() {
-    return this.systemSS;
+  public MultivariateGaussian getPsiSS() {
+    return this.psiSS;
   }
 
   public Vector getStateSample() {
     return this.stateSample;
   }
 
-  public double getScaleSample() {
-    return this.scaleSample;
+  public double getSigma2Sample() {
+    return this.sigma2Sample;
   }
 
   public GaussianArHpWfParticle getPrevParticle() {
@@ -97,11 +101,11 @@ public class GaussianArHpWfParticle extends AbstractCloneableSerializable {
     clone.logWeight = this.logWeight;
     clone.obs = this.obs;
     clone.prevParticle = this.prevParticle;
-    clone.scaleSample = this.scaleSample;
-    clone.scaleSS = this.scaleSS.clone();
+    clone.sigma2Sample = this.sigma2Sample;
+    clone.sigma2SS = this.sigma2SS.clone();
     clone.state = this.state.clone();
     clone.stateSample = this.stateSample.clone();
-    clone.systemSS = this.systemSS.clone();
+    clone.psiSS = this.psiSS.clone();
     return clone;
   }
 

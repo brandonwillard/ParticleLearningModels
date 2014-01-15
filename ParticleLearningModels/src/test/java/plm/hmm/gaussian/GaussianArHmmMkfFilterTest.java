@@ -19,8 +19,9 @@ import org.junit.Test;
 
 import plm.hmm.DlmHiddenMarkovModel;
 import plm.hmm.GenericHMM.SimHmmObservedValue;
-import plm.hmm.HmmResampleComparisonRunner;
 import plm.hmm.StandardHMM;
+import plm.util.hmm.HmmResampleComparisonRunner;
+import plm.util.hmm.gaussian.GaussianArHmmRmseEvaluator;
 
 import com.google.common.collect.Lists;
 import com.statslibextensions.util.ObservedValue;

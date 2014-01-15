@@ -1,4 +1,4 @@
-package plm.logit.polyagamma;
+package plm.util.logit.polyagamma;
 
 import gov.sandia.cognition.math.matrix.Matrix;
 import gov.sandia.cognition.math.matrix.MatrixFactory;
@@ -9,6 +9,9 @@ import gov.sandia.cognition.statistics.distribution.MultivariateGaussian;
 
 import java.util.List;
 import java.util.Random;
+
+import plm.logit.polyagamma.PolyaGammaLogitDistribution;
+import plm.logit.polyagamma.PolyaGammaLogitPLFilter;
 
 import com.google.common.collect.Lists;
 import com.statslibextensions.statistics.distribution.ScaledInverseGammaCovDistribution;

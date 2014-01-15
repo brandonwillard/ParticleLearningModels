@@ -1,4 +1,4 @@
-package plm.logit.fruehwirth;
+package plm.util.logit.fruehwirth;
 
 import gov.sandia.cognition.math.matrix.Vector;
 

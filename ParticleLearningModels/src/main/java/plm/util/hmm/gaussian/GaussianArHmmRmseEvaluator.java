@@ -1,4 +1,4 @@
-package plm.hmm.gaussian;
+package plm.util.hmm.gaussian;
 
 import gov.sandia.cognition.math.MutableDouble;
 import gov.sandia.cognition.math.RingAccumulator;
@@ -7,6 +7,8 @@ import gov.sandia.cognition.math.matrix.VectorFactory;
 import gov.sandia.cognition.statistics.DataDistribution;
 import plm.hmm.GenericHMM;
 import plm.hmm.GenericHMM.SimHmmObservedValue;
+import plm.hmm.gaussian.GaussianArHpTransitionState;
+import plm.hmm.gaussian.GaussianArTransitionState;
 import plm.hmm.HmmTransitionState;
 import au.com.bytecode.opencsv.CSVWriter;
 

@@ -1,4 +1,4 @@
-package plm.hmm.gaussian;
+package plm.util.hmm.gaussian;
 
 import gov.sandia.cognition.learning.algorithm.hmm.HiddenMarkovModel;
 import gov.sandia.cognition.math.MutableDouble;
@@ -20,9 +20,12 @@ import java.util.concurrent.TimeUnit;
 
 import plm.hmm.DlmHiddenMarkovModel;
 import plm.hmm.GenericHMM.SimHmmObservedValue;
+import plm.hmm.gaussian.GaussianArHmmMkfFilter;
+import plm.hmm.gaussian.GaussianArHmmPlFilter;
+import plm.hmm.gaussian.GaussianArTransitionState;
 import plm.hmm.HmmPlFilter;
-import plm.hmm.HmmResampleComparisonRunner;
 import plm.hmm.StandardHMM;
+import plm.util.hmm.HmmResampleComparisonRunner;
 import au.com.bytecode.opencsv.CSVWriter;
 
 import com.google.common.base.Stopwatch;

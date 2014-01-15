@@ -1,4 +1,4 @@
-package plm.regularization.lasso;
+package plm.lasso;
 
 import gov.sandia.cognition.math.LogMath;
 import gov.sandia.cognition.math.matrix.Matrix;

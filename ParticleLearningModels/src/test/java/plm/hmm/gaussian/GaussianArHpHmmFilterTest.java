@@ -1,5 +1,6 @@
 package plm.hmm.gaussian;
 
+import static org.junit.Assert.*;
 import gov.sandia.cognition.math.MutableDouble;
 import gov.sandia.cognition.math.RingAccumulator;
 import gov.sandia.cognition.math.matrix.Matrix;
@@ -12,24 +13,34 @@ import gov.sandia.cognition.statistics.distribution.InverseGammaDistribution;
 import gov.sandia.cognition.statistics.distribution.MultivariateGaussian;
 
 import java.io.FileWriter;
-import java.io.IOException;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.log4j.Logger;
+import org.junit.Test;
+
 import plm.hmm.DlmHiddenMarkovModel;
 import plm.hmm.GenericHMM.SimHmmObservedValue;
 import plm.hmm.HmmPlFilter;
-import plm.hmm.HmmResampleComparisonRunner;
+import plm.util.hmm.HmmResampleComparisonRunner;
+import plm.util.hmm.gaussian.GaussianArHmmClassEvaluator;
+import plm.util.hmm.gaussian.GaussianArHmmPsiLearningEvaluator;
+import plm.util.hmm.gaussian.GaussianArHmmRmseEvaluator;
 import au.com.bytecode.opencsv.CSVWriter;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
 import com.statslibextensions.statistics.distribution.CountedDataDistribution;
 
-public class GaussianArHpHmmRunner extends HmmResampleComparisonRunner {
+public class GaussianArHpHmmFilterTest {
 
-  public static void main(String[] args) throws IOException {
+  protected static final Logger log = Logger
+        .getLogger(HmmResampleComparisonRunner.class);
+
+  @Test
+  public void test() {
 
     final long seed = new Random().nextLong();
     final Random random = new Random(seed);
@@ -101,14 +112,6 @@ public class GaussianArHpHmmRunner extends HmmResampleComparisonRunner {
     final HmmPlFilter<DlmHiddenMarkovModel, GaussianArHpTransitionState, Vector> wfFilter =
         new GaussianArHpHmmPlFilter(trueHmm1, sigmaPrior, priorPhis, random, true);
 
-
-    final String path;
-    if (args.length == 0)
-      path = ".";
-    else
-      path = args[0];
-    String outputFilename = path + "/hmm-nar-wf-rs-10000-class-errors-m1.csv";
-
     final int K = 5;
     final int T = 700;
     final int N = 1000;
@@ -121,16 +124,14 @@ public class GaussianArHpHmmRunner extends HmmResampleComparisonRunner {
     wfFilter.setNumParticles(N);
     wfFilter.setResampleOnly(false);
 
-    CSVWriter writer = new CSVWriter(new FileWriter(outputFilename), ',');
-    String[] header = "rep,t,filter.type,measurement.type,resample.type,measurement".split(",");
-    writer.writeNext(header);
+    log.info("rep\tt\tfilter.type\tmeasurement.type\tresample.type\tmeasurement");
 
     GaussianArHmmClassEvaluator wfClassEvaluator = new GaussianArHmmClassEvaluator("wf-pl", 
-        writer);
+        null);
     GaussianArHmmRmseEvaluator wfRmseEvaluator = new GaussianArHmmRmseEvaluator("wf-pl", 
-        writer);
+        null);
     GaussianArHmmPsiLearningEvaluator wfPsiEvaluator = new GaussianArHmmPsiLearningEvaluator("wf-pl", 
-        truePsis, writer);
+        truePsis, null);
 
     RingAccumulator<MutableDouble> wfLatency = 
         new RingAccumulator<MutableDouble>();
@@ -162,11 +163,11 @@ public class GaussianArHpHmmRunner extends HmmResampleComparisonRunner {
             wfWatch.stop();
             final long latency = wfWatch.elapsed(TimeUnit.MILLISECONDS);
             wfLatency.accumulate(new MutableDouble(latency));
-            writer.writeNext(new String[] {
+            log.info(Joiner.on("\t").join(new String[] {
                 Integer.toString(k), Integer.toString(i), 
                 "wf-pl", "latency", "NA", 
-                Long.toString(latency)
-            });
+                Long.toString(latency)})
+                );
           }
           
           wfClassEvaluator.evaluate(k, simulation.get(i), wfDistribution);
@@ -184,8 +185,7 @@ public class GaussianArHpHmmRunner extends HmmResampleComparisonRunner {
 
     }
 
-    writer.close();
+    assertEquals(0d, wfRmseEvaluator.getTotalRate().getMean().value, 9e-1);
   }
-    
 
 }

@@ -1,4 +1,4 @@
-package plm.hmm;
+package plm.util.hmm;
 
 import gov.sandia.cognition.math.MutableDouble;
 import gov.sandia.cognition.math.RingAccumulator;
@@ -16,7 +16,12 @@ import java.util.Random;
 
 import org.apache.log4j.Logger;
 
+import plm.hmm.GenericHMM;
+import plm.hmm.HmmPlFilter;
+import plm.hmm.HmmTransitionState;
+import plm.hmm.StandardHMM;
 import plm.hmm.GenericHMM.SimHmmObservedValue;
+import plm.hmm.HmmPlFilter.HmmPlUpdater;
 import plm.hmm.HmmTransitionState.ResampleType;
 import au.com.bytecode.opencsv.CSVWriter;
 

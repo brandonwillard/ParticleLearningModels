@@ -124,18 +124,15 @@ public class GaussianArHpWfPlFilter extends AbstractParticleFilter<ObservedValue
       for (int i = 0; i < numParticles; i++) {
 
         final InverseGammaDistribution thisSigma2Prior = this.initialPriorSigma2.clone();
+        final double sigma2Sample = thisSigma2Prior.sample(this.rng);
 
         final KalmanFilter thisKf = this.initialKf.clone();
-        /*
-         * In this model, covariance is the same across components;
-         * the constant offset varies.
-         * As well, we need to set/reset the kalman filters to adhere
-         * to the intended model.
-         */
-
         final MultivariateGaussian thisPsiPrior = initialPriorPsi.clone();
+        // TODO FIXME use t-distribution
+        final MultivariateGaussian thisPsiPriorSmpler = thisPsiPrior.clone();
+        thisPsiPriorSmpler.getCovariance().scaleEquals(sigma2Sample);
+        final Vector psiSample = thisPsiPriorSmpler.sample(this.rng);
 
-        final Vector psiSample = thisPsiPrior.sample(this.rng);
         final Vector alphaTerm = psiSample.subVector(0, 
             psiSample.getDimensionality()/2 - 1);
         thisKf.getModel().setState(alphaTerm);
@@ -158,17 +155,17 @@ public class GaussianArHpWfPlFilter extends AbstractParticleFilter<ObservedValue
         thisKf.setModelCovariance(modelIdent);
 
         final MultivariateGaussian priorState = thisKf.createInitialLearnedObject();
-        final Vector priorStateSample = priorState.sample(this.rng);
+        final MultivariateGaussian priorStateSmpler = thisKf.createInitialLearnedObject();
+        priorStateSmpler.getCovariance().scaleEquals(sigma2Sample);
+        final Vector priorStateSample = priorStateSmpler.sample(this.rng);
 
-        // TODO not really necessary, now?
-        final double scaleSample = Double.NaN;//thisSigma2Prior.sample(this.rng);
 
         final GaussianArHpWfParticle particle =
             new GaussianArHpWfParticle(thisKf, 
                 ObservedValue.<Vector>create(0, null), priorState, 
                 priorStateSample,
                 thisSigma2Prior, thisPsiPrior,
-                scaleSample, psiSample);
+                sigma2Sample, psiSample);
         
         particle.setResampleType(ResampleType.NONE);
 
@@ -243,12 +240,12 @@ public class GaussianArHpWfPlFilter extends AbstractParticleFilter<ObservedValue
       postPsi.setMean(postPsiMean);
       postPsi.setCovariance(postAInv);
       
-      final double newScaleSmpl = Double.NaN;//sigma2SS.sample(this.rng);
+      final double sigma2Smpl = sigma2SS.sample(this.rng);
       final GaussianArHpWfParticle postState =
           new GaussianArHpWfParticle(kf, predState.getObservation(), 
               posteriorState, postStateSample, 
               sigma2SS, postPsi, 
-              newScaleSmpl, predState.getPsiSample());
+              sigma2Smpl, predState.getPsiSample());
 
       return postState;
     }
@@ -305,13 +302,13 @@ public class GaussianArHpWfPlFilter extends AbstractParticleFilter<ObservedValue
     final double sigma2Sample = priorSigma2.sample(this.getRandom()); 
     MultivariateGaussian posteriorState = prevState.getState().clone(); 
     // TODO FIXME gross hack!
-    posteriorState.getCovariance().scaleEquals(sigma2Sample);
-    kf.setMeasurementCovariance(Iy.scale(sigma2Sample));
-    kf.setModelCovariance(Ix.scale(sigma2Sample));
+//    posteriorState.getCovariance().scaleEquals(sigma2Sample);
+//    kf.setMeasurementCovariance(Iy.scale(sigma2Sample));
+//    kf.setModelCovariance(Ix.scale(sigma2Sample));
     kf.predict(posteriorState);
     kf.update(posteriorState, data.getObservedValue());
-    kf.setMeasurementCovariance(Iy);
-    kf.setModelCovariance(Ix);
+//    kf.setMeasurementCovariance(Iy);
+//    kf.setModelCovariance(Ix);
     
 
     final GaussianArHpWfParticle newTransState =
@@ -348,8 +345,31 @@ public class GaussianArHpWfPlFilter extends AbstractParticleFilter<ObservedValue
 
       for (int i = 0; i < this.numSubSamples * particleCount; i++) {
 
+        /*
+         * K many sub-samples of x_{t-1}  
+         */
+        final InverseGammaDistribution sigma2SS = particle.getSigma2SS();
+        // TODO FIXME matrix inverse!!
+        final Matrix postStatePrec = particle.getState().getCovarianceInverse().scale(
+            sigma2SS.getShape()/sigma2SS.getScale());
+        MultivariateStudentTDistribution postStateMarginal = new MultivariateStudentTDistribution(
+            sigma2SS.getShape(), 
+            particle.getState().getMean(), postStatePrec);
+        final Vector stateSample = postStateMarginal.sample(this.getRandom());
+
+        final GaussianArHpWfParticle transStateTmp = 
+            new GaussianArHpWfParticle(particle.getPrevParticle(), 
+                particle.getFilter(), 
+                particle.getObs(), 
+                particle.getState(), 
+                stateSample, 
+                sigma2SS, 
+                particle.getPsiSS(), 
+                particle.getSigma2Sample(), 
+                particle.getPsiSample());
+
         final double transStateLogLik =
-            this.updater.computeLogLikelihood(particle, data)
+            this.updater.computeLogLikelihood(transStateTmp, data)
                 + particlePriorLogLik;
 
         final GaussianArHpWfParticle transState =

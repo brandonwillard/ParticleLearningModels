@@ -18,7 +18,7 @@
       <url>git:releases://git@bitbucket.org:brandonwillard/mvn-repo.git</url>
     </repository>
     <snapshotRepository>
-      <id>your-snapshot-repo-id</id>
+      <id>brandonwillard-mvn-snapshot-repo</id>
       <name>Your Snapshot Repo Name</name>
       <url>git:snapshots://git@bitbucket.org:brandonwillard/mvn-repo.git</url>
     </snapshotRepository>
@@ -53,6 +53,10 @@
 
   <repositories>  
     <repository>
+      <id>central</id>
+      <url>http://repo1.maven.org/maven2/</url>
+    </repository>
+    <repository>
       <id>sonatype-nexus-releases</id>
       <name>Sonatype Nexus Releases</name>
       <url>https://oss.sonatype.org/content/repositories/snapshots</url>
@@ -62,7 +66,10 @@
     </repository>
     <repository>
       <id>brandonwillard-mvn-repo</id>
-      <url>https://api.bitbucket.org/1.0/repositories/brandonwillard/mvn-repo/raw/master</url>
+      <snapshots>
+          <enabled>true</enabled>
+      </snapshots>
+      <url>https://bitbucket.org/brandonwillard/mvn-repo/raw/snapshots</url>
     </repository>
     <repository>
       <id>wagon-git</id>
@@ -113,5 +120,10 @@
       <artifactId>opencsv</artifactId>
       <version>2.0</version>
     </dependency>
+<!--     <dependency> -->
+<!--       <groupId>org.codehaus.jsr166-mirror</groupId> -->
+<!--       <artifactId>jsr166y</artifactId> -->
+<!--       <version>1.7.0</version> -->
+<!--     </dependency> -->
   </dependencies>
 </project>

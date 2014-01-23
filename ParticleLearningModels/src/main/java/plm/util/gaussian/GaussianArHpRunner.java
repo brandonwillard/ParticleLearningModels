@@ -78,7 +78,7 @@ public class GaussianArHpRunner {
     final MultivariateGaussian phiPrior = new MultivariateGaussian(phiMean, phiCov);
 
     final int K = 3;
-    final int T = 700;
+    final int T = 200;
     final int N = 1000;
 
     final GaussianArHpWfPlFilter wfFilter =

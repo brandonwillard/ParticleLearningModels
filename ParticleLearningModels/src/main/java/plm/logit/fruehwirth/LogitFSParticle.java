@@ -1,5 +1,7 @@
 package plm.logit.fruehwirth;
 
+import org.apache.commons.lang3.ObjectUtils;
+
 import com.statslibextensions.util.ComparableWeighted;
 
 import gov.sandia.cognition.math.matrix.Vector;
@@ -7,13 +9,14 @@ import gov.sandia.cognition.statistics.bayesian.KalmanFilter;
 import gov.sandia.cognition.statistics.distribution.MultivariateGaussian;
 import gov.sandia.cognition.statistics.distribution.UnivariateGaussian;
 import gov.sandia.cognition.util.AbstractCloneableSerializable;
+import gov.sandia.cognition.util.ObjectUtil;
 import gov.sandia.cognition.util.Weighted;
 
-public class FruehwirthLogitParticle extends AbstractCloneableSerializable 
+public class LogitFSParticle extends AbstractCloneableSerializable 
         implements ComparableWeighted {
 
   protected UnivariateGaussian EVcomponent;
-  protected FruehwirthLogitParticle previousParticle;
+  protected LogitFSParticle previousParticle;
   protected KalmanFilter regressionFilter;
   protected MultivariateGaussian linearState;
   protected double priorPredMean;
@@ -21,6 +24,7 @@ public class FruehwirthLogitParticle extends AbstractCloneableSerializable
   protected Vector augResponseSample = null;
   protected Vector betaSample = null;
   protected double logWeight;
+  private double[] compLikelihoods;
 
   /**
    * Get log weight
@@ -50,8 +54,8 @@ public class FruehwirthLogitParticle extends AbstractCloneableSerializable
     this.augResponseSample = augResponseSample;
   }
 
-  public FruehwirthLogitParticle(
-      FruehwirthLogitParticle previousParticle, KalmanFilter linearComponent,
+  public LogitFSParticle(
+      LogitFSParticle previousParticle, KalmanFilter linearComponent,
       MultivariateGaussian linearState, UnivariateGaussian EVcomponent) {
     this.previousParticle = previousParticle;
     this.regressionFilter = linearComponent;
@@ -60,8 +64,8 @@ public class FruehwirthLogitParticle extends AbstractCloneableSerializable
   }
 
   @Override
-  public FruehwirthLogitParticle clone() {
-    FruehwirthLogitParticle clone = (FruehwirthLogitParticle) super.clone();
+  public LogitFSParticle clone() {
+    LogitFSParticle clone = (LogitFSParticle) super.clone();
     clone.EVcomponent = this.EVcomponent;
     clone.previousParticle = this.previousParticle;
     clone.regressionFilter = this.regressionFilter.clone();
@@ -69,6 +73,7 @@ public class FruehwirthLogitParticle extends AbstractCloneableSerializable
     clone.augResponseSample = this.augResponseSample;
     clone.priorPredMean = this.priorPredMean;
     clone.priorPredCov = this.priorPredCov;
+    clone.compLikelihoods = ObjectUtil.cloneSmart(this.compLikelihoods);
     return clone;
   }
 
@@ -88,11 +93,11 @@ public class FruehwirthLogitParticle extends AbstractCloneableSerializable
     this.linearState = linearState;
   }
 
-  public FruehwirthLogitParticle getPreviousParticle() {
+  public LogitFSParticle getPreviousParticle() {
     return previousParticle;
   }
 
-  public void setPreviousParticle(FruehwirthLogitParticle previousParticle) {
+  public void setPreviousParticle(LogitFSParticle previousParticle) {
     this.previousParticle = previousParticle;
   }
 
@@ -145,6 +150,13 @@ public class FruehwirthLogitParticle extends AbstractCloneableSerializable
   public int compareTo(Weighted o) {
     return Double.compare(this.getWeight(), o.getWeight());
   }
+
+  public void setComponentLikelihoods(double[] componentLikelihoods) {
+    this.compLikelihoods = componentLikelihoods;
+  }
   
+  public double[] getComponentLikelihoods() {
+    return this.compLikelihoods;
+  }
   
 }

@@ -34,9 +34,9 @@ import plm.util.hmm.gaussian.GaussianArHmmRmseEvaluator;
 import com.google.common.base.Joiner;
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.Lists;
-import com.statslibextensions.statistics.ExtSamplingUtils;
 import com.statslibextensions.statistics.bayesian.DlmUtils;
 import com.statslibextensions.statistics.distribution.CountedDataDistribution;
+import com.statslibextensions.util.ExtSamplingUtils;
 import com.statslibextensions.util.ObservedValue.SimObservedValue;
 
 public class GaussianArHpWfPlFilterTest {

@@ -14,8 +14,8 @@ import java.util.Random;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-import com.statslibextensions.statistics.ExtSamplingUtils;
 import com.statslibextensions.statistics.distribution.ScaledInverseGammaCovDistribution;
+import com.statslibextensions.util.ExtSamplingUtils;
 import com.statslibextensions.util.ObservedValue;
 
 /**

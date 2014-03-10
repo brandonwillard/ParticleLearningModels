@@ -5,7 +5,7 @@ import java.util.Arrays;
 import org.junit.Test;
 
 import com.statslibextensions.math.ExtLogMath;
-import com.statslibextensions.statistics.ExtSamplingUtils;
+import com.statslibextensions.util.ExtSamplingUtils;
 
 public class NumericalTest {
 

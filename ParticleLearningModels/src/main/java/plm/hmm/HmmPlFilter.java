@@ -17,9 +17,9 @@ import com.google.common.collect.Lists;
 import com.google.common.primitives.Doubles;
 import com.statslibextensions.math.ExtLogMath;
 import com.statslibextensions.math.MutableDoubleCount;
-import com.statslibextensions.statistics.ExtSamplingUtils;
 import com.statslibextensions.statistics.distribution.CountedDataDistribution;
 import com.statslibextensions.statistics.distribution.WFCountedDataDistribution;
+import com.statslibextensions.util.ExtSamplingUtils;
 import com.statslibextensions.util.ObservedValue;
 
 public abstract class HmmPlFilter<HmmType extends GenericHMM<ResponseType, ?, ?>, ParticleType extends HmmTransitionState<ResponseType, HmmType>, ResponseType>
@@ -143,20 +143,22 @@ public abstract class HmmPlFilter<HmmType extends GenericHMM<ResponseType, ?, ?>
      */
     final CountedDataDistribution<ParticleType> updatedDist =
         new CountedDataDistribution<ParticleType>(true);
+    target.clear();
     for (final Entry<ParticleType, MutableDouble> entry : resampledParticles
         .asMap().entrySet()) {
       final ParticleType updatedEntry =
           this.updater.update(entry.getKey());
       updatedEntry.setResampleType(resampleType);
       updatedEntry.setStateLogWeight(entry.getValue().doubleValue());
-      updatedDist.set(updatedEntry, entry.getValue().doubleValue(),
+      updatedDist.increment(updatedEntry, entry.getValue().doubleValue(),
+          ((MutableDoubleCount) entry.getValue()).count);
+      ((CountedDataDistribution) target).increment(
+          updatedEntry, entry.getValue().doubleValue(),
           ((MutableDoubleCount) entry.getValue()).count);
     }
 
     Preconditions
         .checkState(updatedDist.getTotalCount() == this.numParticles);
-    target.clear();
-    target.incrementAll(updatedDist);
     Preconditions.checkState(((CountedDataDistribution) target)
         .getTotalCount() == this.numParticles);
   }

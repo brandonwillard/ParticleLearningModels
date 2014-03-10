@@ -20,7 +20,7 @@ import java.util.Random;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-import com.statslibextensions.statistics.ExtSamplingUtils;
+import com.statslibextensions.util.ExtSamplingUtils;
 
 /**
  * A Particle Learning filter for a multivariate Gaussian Dirichlet Process.

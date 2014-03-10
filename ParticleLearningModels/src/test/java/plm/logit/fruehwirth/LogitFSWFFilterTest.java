@@ -36,7 +36,7 @@ import com.statslibextensions.statistics.bayesian.DlmUtils;
 import com.statslibextensions.util.ObservedValue;
 import com.statslibextensions.util.ObservedValue.SimObservedValue;
 
-public class FruehwirthLogitPLFilterTest {
+public class LogitFSWFFilterTest {
 
   @Test
   public void test1() {
@@ -95,12 +95,12 @@ public class FruehwirthLogitPLFilterTest {
     final Matrix modelCovariance = MatrixFactory.getDefault().copyArray(new double[][] {
         {1d}});
 
-    final FruehwirthLogitPLFilter plFilter =
-        new FruehwirthLogitPLFilter(initialPrior, 
-            F, G, modelCovariance, false, rng);
+    final LogitFSWFFilter plFilter =
+        new LogitFSWFFilter(initialPrior, 
+            F, G, modelCovariance, rng);
     plFilter.setNumParticles(2000);
 
-    final DataDistribution<FruehwirthLogitParticle> currentMixtureDistribution =
+    final DataDistribution<LogitFSParticle> currentMixtureDistribution =
         plFilter.createInitialLearnedObject();
     double lastRMSE = Double.POSITIVE_INFINITY;
     for (int i = 0; i < N; i++) {
@@ -114,7 +114,7 @@ public class FruehwirthLogitPLFilterTest {
       double sum = 0d;
       double sqSum = 0d;
       final double distTotalLogProb = currentMixtureDistribution.getTotal();
-      for (Entry<FruehwirthLogitParticle, ? extends Number> particleEntry : 
+      for (Entry<LogitFSParticle, ? extends Number> particleEntry : 
         currentMixtureDistribution.asMap().entrySet()) {
         final Vector particleState = particleEntry.getKey().getLinearState().getMean();
         final double rse = trueState.minus(particleState).dotDivide(trueState).norm2();
@@ -208,12 +208,12 @@ public class FruehwirthLogitPLFilterTest {
         {0d, 0d},
         {0d, 0d}});
 
-    final FruehwirthLogitPLFilter plFilter =
-        new FruehwirthLogitPLFilter(initialPrior, 
-            F, G, modelCovariance, true, rng);
+    final LogitFSWFFilter plFilter =
+        new LogitFSWFFilter(initialPrior, 
+            F, G, modelCovariance, rng);
     plFilter.setNumParticles(50);
 
-    final DataDistribution<FruehwirthLogitParticle> currentMixtureDistribution =
+    final DataDistribution<LogitFSParticle> currentMixtureDistribution =
         plFilter.createInitialLearnedObject();
     double lastRMSE = Double.POSITIVE_INFINITY;
     for (int i = 0; i < N; i++) {
@@ -227,7 +227,7 @@ public class FruehwirthLogitPLFilterTest {
       double sum = 0d;
       double sqSum = 0d;
       final double distTotalLogProb = currentMixtureDistribution.getTotal();
-      for (Entry<FruehwirthLogitParticle, ? extends Number> particleEntry : 
+      for (Entry<LogitFSParticle, ? extends Number> particleEntry : 
         currentMixtureDistribution.asMap().entrySet()) {
         final Vector particleState = particleEntry.getKey().getLinearState().getMean();
         final double rse = trueState.minus(particleState).norm2();
@@ -332,13 +332,13 @@ public class FruehwirthLogitPLFilterTest {
     final Matrix modelCovariance = MatrixFactory.getDefault().copyArray(new double[][] {
         {0d}});
 
-    final FruehwirthLogitPLFilter plFilter =
-        new FruehwirthLogitPLFilter(initialPrior, F, G, 
-            modelCovariance, true, rng);
+    final LogitFSWFFilter plFilter =
+        new LogitFSWFFilter(initialPrior, F, G, 
+            modelCovariance, rng);
     plFilter.setNumParticles(1000);
 
     double lastRMSE = Double.POSITIVE_INFINITY;
-    final DataDistribution<FruehwirthLogitParticle> currentMixtureDistribution =
+    final DataDistribution<LogitFSParticle> currentMixtureDistribution =
         plFilter.createInitialLearnedObject();
     for (int i = 0; i < N; i++) {
       final ObservedValue<Vector, Matrix> observation = observations.get(i);
@@ -351,7 +351,7 @@ public class FruehwirthLogitPLFilterTest {
       double sum = 0d;
       double sqSum = 0d;
       final double distTotalLogProb = currentMixtureDistribution.getTotal();
-      for (Entry<FruehwirthLogitParticle, ? extends Number> particleEntry : 
+      for (Entry<LogitFSParticle, ? extends Number> particleEntry : 
         currentMixtureDistribution.asMap().entrySet()) {
         final Vector particleState = particleEntry.getKey().getLinearState().getMean();
         final double rse = trueState.minus(particleState).norm2();

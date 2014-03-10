@@ -112,8 +112,8 @@ public class GaussianArHpHmmFilterTest {
     final HmmPlFilter<DlmHiddenMarkovModel, GaussianArHpTransitionState, Vector> wfFilter =
         new GaussianArHpHmmPlFilter(trueHmm1, sigmaPrior, priorPhis, random, true);
 
-    final int K = 5;
-    final int T = 700;
+    final int K = 3;
+    final int T = 200;
     final int N = 1000;
 
     /*

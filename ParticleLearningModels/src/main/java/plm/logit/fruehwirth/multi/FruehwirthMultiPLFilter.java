@@ -25,10 +25,10 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.primitives.Doubles;
-import com.statslibextensions.statistics.ExtSamplingUtils;
 import com.statslibextensions.statistics.distribution.CountedDataDistribution;
 import com.statslibextensions.statistics.distribution.FruewirthSchnatterEV1Distribution;
 import com.statslibextensions.statistics.distribution.WFCountedDataDistribution;
+import com.statslibextensions.util.ExtSamplingUtils;
 import com.statslibextensions.util.ObservedValue;
 
 /**

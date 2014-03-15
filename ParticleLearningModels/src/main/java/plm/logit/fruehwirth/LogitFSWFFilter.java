@@ -38,18 +38,18 @@ import com.statslibextensions.util.ObservedValue;
  * @author bwillard
  * 
  */
-public class LogitFSWFFilter extends AbstractParticleFilter<ObservedValue<Vector, Matrix>, LogitFSParticle> {
+public class LogitFSWFFilter extends AbstractParticleFilter<ObservedValue<Vector, Matrix>, LogitMixParticle> {
 
-  public class FruehwirthLogitPLUpdater extends AbstractCloneableSerializable
+  public class LogitFSWFUpdater extends AbstractCloneableSerializable
       implements
-        Updater<ObservedValue<Vector, Matrix>, LogitFSParticle> {
+        Updater<ObservedValue<Vector, Matrix>, LogitMixParticle> {
 
     final protected Random rng;
     final protected FruewirthSchnatterEV1Distribution evDistribution;
     final protected KalmanFilter initialFilter;
     final protected MultivariateGaussian initialPrior;
 
-    public FruehwirthLogitPLUpdater(
+    public LogitFSWFUpdater(
         KalmanFilter initialFilter, 
         MultivariateGaussian initialPrior, 
         FruewirthSchnatterEV1Distribution evDistribution, 
@@ -69,7 +69,7 @@ public class LogitFSWFFilter extends AbstractParticleFilter<ObservedValue<Vector
      * @return
      */
     @Override
-    public double computeLogLikelihood(LogitFSParticle particle, 
+    public double computeLogLikelihood(LogitMixParticle particle, 
         ObservedValue<Vector, Matrix> observation) {
       
       // The prior pred. dist should already be conditional on the current component...
@@ -101,9 +101,9 @@ public class LogitFSWFFilter extends AbstractParticleFilter<ObservedValue<Vector
     }
 
     @Override
-    public DataDistribution<LogitFSParticle> createInitialParticles(int numParticles) {
+    public DataDistribution<LogitMixParticle> createInitialParticles(int numParticles) {
 
-      final DataDistribution<LogitFSParticle> initialParticles =
+      final DataDistribution<LogitMixParticle> initialParticles =
           CountedDataDistribution.create(true);
       for (int i = 0; i < numParticles; i++) {
         
@@ -113,8 +113,8 @@ public class LogitFSWFFilter extends AbstractParticleFilter<ObservedValue<Vector
         final UnivariateGaussian evDist = this.evDistribution.
             getDistributions().get(componentId);
         
-        final LogitFSParticle particleMvgDPDist =
-            new LogitFSParticle(null, 
+        final LogitMixParticle particleMvgDPDist =
+            new LogitMixParticle(null, 
                 kf, initialPriorState, evDist);
         initialParticles.increment(particleMvgDPDist);
       }
@@ -125,7 +125,7 @@ public class LogitFSWFFilter extends AbstractParticleFilter<ObservedValue<Vector
      * In this model/filter, there's no need for blind samples from the predictive distribution.
      */
     @Override
-    public LogitFSParticle update(LogitFSParticle previousParameter) {
+    public LogitMixParticle update(LogitMixParticle previousParameter) {
       return previousParameter;
     }
 
@@ -160,13 +160,13 @@ public class LogitFSWFFilter extends AbstractParticleFilter<ObservedValue<Vector
             modelCovariance,
             MatrixFactory.getDefault().copyArray(new double[][] {{0}})    
           );
-    this.setUpdater(new FruehwirthLogitPLUpdater(initialFilter, initialPrior,
+    this.setUpdater(new LogitFSWFUpdater(initialFilter, initialPrior,
         evDistribution, rng));
     this.setRandom(rng);
   }
 
   @Override
-  public void update(DataDistribution<LogitFSParticle> target, ObservedValue<Vector, Matrix> data) {
+  public void update(DataDistribution<LogitMixParticle> target, ObservedValue<Vector, Matrix> data) {
 
     /*
      * Compute prior predictive log likelihoods for resampling.
@@ -179,16 +179,16 @@ public class LogitFSWFFilter extends AbstractParticleFilter<ObservedValue<Vector
      * what it's currently being used for, since the interface
      * contract is explicitly broken with our comparator.
      */
-    TreeMap<Double, LogitFSParticle> particleTree = Maps.
-        <Double, Double, LogitFSParticle>newTreeMap(
+    TreeMap<Double, LogitMixParticle> particleTree = Maps.
+        <Double, Double, LogitMixParticle>newTreeMap(
         new Comparator<Double>() {
           @Override
           public int compare(Double o1, Double o2) {
             return o1 < o2 ? 1 : -1;
           }
         });
-    for (Entry<LogitFSParticle, ? extends Number> particleEntry : target.asMap().entrySet()) {
-      final LogitFSParticle particle = particleEntry.getKey();
+    for (Entry<LogitMixParticle, ? extends Number> particleEntry : target.asMap().entrySet()) {
+      final LogitMixParticle particle = particleEntry.getKey();
 
       /*
        * Fruewirth-Schnatter's method for upper utility sampling, where
@@ -220,7 +220,7 @@ public class LogitFSWFFilter extends AbstractParticleFilter<ObservedValue<Vector
         Vector sampledAugResponse = VectorFactory.getDefault().copyValues(dSampledAugResponse);
 
         for (int j = 0; j < 10; j++) {
-          final LogitFSParticle predictiveParticle = particle.clone();
+          final LogitMixParticle predictiveParticle = particle.clone();
           predictiveParticle.setPreviousParticle(particle);
           predictiveParticle.setBetaSample(betaSample);
           predictiveParticle.setAugResponseSample(sampledAugResponse); 
@@ -276,7 +276,7 @@ public class LogitFSWFFilter extends AbstractParticleFilter<ObservedValue<Vector
       }
     }
 
-    final CountedDataDistribution<LogitFSParticle> resampledParticles =
+    final CountedDataDistribution<LogitMixParticle> resampledParticles =
         ExtSamplingUtils.waterFillingResample( 
             Doubles.toArray(particleTree.keySet()), 
             particleTotalLogLikelihood,
@@ -287,8 +287,8 @@ public class LogitFSWFFilter extends AbstractParticleFilter<ObservedValue<Vector
      * Propagate
      */
     target.clear();
-    for (final Entry<LogitFSParticle, ? extends Number> particleEntry : resampledParticles.asMap().entrySet()) {
-      final LogitFSParticle updatedParticle = sufficientStatUpdate(
+    for (final Entry<LogitMixParticle, ? extends Number> particleEntry : resampledParticles.asMap().entrySet()) {
+      final LogitMixParticle updatedParticle = sufficientStatUpdate(
           particleEntry.getKey(), data);
       final Number value = particleEntry.getValue();
       if (particleEntry.getValue() instanceof MutableDoubleCount) {
@@ -329,9 +329,9 @@ public class LogitFSWFFilter extends AbstractParticleFilter<ObservedValue<Vector
     return dSampledAugResponse;
   }
 
-  private LogitFSParticle sufficientStatUpdate(
-      LogitFSParticle priorParticle, ObservedValue<Vector, Matrix> data) {
-    final LogitFSParticle updatedParticle = priorParticle.clone();
+  private LogitMixParticle sufficientStatUpdate(
+      LogitMixParticle priorParticle, ObservedValue<Vector, Matrix> data) {
+    final LogitMixParticle updatedParticle = priorParticle.clone();
     
     final KalmanFilter filter = updatedParticle.getRegressionFilter(); 
     final UnivariateGaussian evComponent = updatedParticle.EVcomponent;

@@ -17,7 +17,7 @@ import java.util.Map.Entry;
 import java.util.Random;
 
 import plm.logit.fruehwirth.LogitFSWFFilter;
-import plm.logit.fruehwirth.LogitFSParticle;
+import plm.logit.fruehwirth.LogitMixParticle;
 
 import com.google.common.collect.Lists;
 import com.statslibextensions.statistics.bayesian.DlmUtils;
@@ -98,7 +98,7 @@ public class FruehwirthLogitRunner {
         new LogitFSWFFilter(initialPrior, F, G, modelCovariance, rng);
     plFilter.setNumParticles(10000);
 
-    final DataDistribution<LogitFSParticle> currentMixtureDistribution =
+    final DataDistribution<LogitMixParticle> currentMixtureDistribution =
         plFilter.createInitialLearnedObject();
     for (int i = 0; i < N; i++) {
       final ObservedValue<Vector, Matrix> observation = observations.get(i);
@@ -111,7 +111,7 @@ public class FruehwirthLogitRunner {
        */
       double rmseMean = 0d;
 
-      for (Entry<LogitFSParticle, ? extends Number> particleEntry : 
+      for (Entry<LogitMixParticle, ? extends Number> particleEntry : 
         currentMixtureDistribution.asMap().entrySet()) {
         final Vector trueState = dlmSamples.get(i).getTrueState();
         final Vector particleState = particleEntry.getKey().getLinearState().getMean();

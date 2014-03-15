@@ -22,7 +22,6 @@ import com.statslibextensions.util.ExtSamplingUtils;
 import com.statslibextensions.util.ObservedValue;
 
 /**
- * A Particle Learning filter for a multivariate Gaussian Dirichlet Process.
  * 
  * @author bwillard
  * 

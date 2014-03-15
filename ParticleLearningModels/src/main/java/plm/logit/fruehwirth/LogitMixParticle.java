@@ -5,6 +5,7 @@ import org.apache.commons.lang3.ObjectUtils;
 import com.statslibextensions.util.ComparableWeighted;
 
 import gov.sandia.cognition.math.matrix.Vector;
+import gov.sandia.cognition.math.signals.LinearDynamicalSystem;
 import gov.sandia.cognition.statistics.bayesian.KalmanFilter;
 import gov.sandia.cognition.statistics.distribution.MultivariateGaussian;
 import gov.sandia.cognition.statistics.distribution.UnivariateGaussian;
@@ -12,11 +13,11 @@ import gov.sandia.cognition.util.AbstractCloneableSerializable;
 import gov.sandia.cognition.util.ObjectUtil;
 import gov.sandia.cognition.util.Weighted;
 
-public class LogitFSParticle extends AbstractCloneableSerializable 
+public class LogitMixParticle extends AbstractCloneableSerializable 
         implements ComparableWeighted {
 
   protected UnivariateGaussian EVcomponent;
-  protected LogitFSParticle previousParticle;
+  protected LogitMixParticle previousParticle;
   protected KalmanFilter regressionFilter;
   protected MultivariateGaussian linearState;
   protected double priorPredMean;
@@ -54,8 +55,8 @@ public class LogitFSParticle extends AbstractCloneableSerializable
     this.augResponseSample = augResponseSample;
   }
 
-  public LogitFSParticle(
-      LogitFSParticle previousParticle, KalmanFilter linearComponent,
+  public LogitMixParticle(
+      LogitMixParticle previousParticle, KalmanFilter linearComponent,
       MultivariateGaussian linearState, UnivariateGaussian EVcomponent) {
     this.previousParticle = previousParticle;
     this.regressionFilter = linearComponent;
@@ -64,16 +65,27 @@ public class LogitFSParticle extends AbstractCloneableSerializable
   }
 
   @Override
-  public LogitFSParticle clone() {
-    LogitFSParticle clone = (LogitFSParticle) super.clone();
+  public LogitMixParticle clone() {
+    LogitMixParticle clone = (LogitMixParticle) super.clone();
     clone.EVcomponent = this.EVcomponent;
     clone.previousParticle = this.previousParticle;
-    clone.regressionFilter = this.regressionFilter.clone();
-    clone.linearState = this.linearState.clone();
+    // when do we ever need a deep copy?  we don't alter
+    // the components of a kalman filter in place...
+    clone.regressionFilter = 
+        new KalmanFilter(
+            new LinearDynamicalSystem(
+                this.regressionFilter.getModel().getA(),
+                this.regressionFilter.getModel().getB(),
+                this.regressionFilter.getModel().getC()), 
+            this.regressionFilter.getModelCovariance(), 
+            this.regressionFilter.getMeasurementCovariance());
+    // same here
+    clone.linearState = new MultivariateGaussian(
+        this.linearState.getMean(), this.linearState.getCovariance());
     clone.augResponseSample = this.augResponseSample;
     clone.priorPredMean = this.priorPredMean;
     clone.priorPredCov = this.priorPredCov;
-    clone.compLikelihoods = ObjectUtil.cloneSmart(this.compLikelihoods);
+    clone.compLikelihoods = this.compLikelihoods;
     return clone;
   }
 
@@ -93,11 +105,11 @@ public class LogitFSParticle extends AbstractCloneableSerializable
     this.linearState = linearState;
   }
 
-  public LogitFSParticle getPreviousParticle() {
+  public LogitMixParticle getPreviousParticle() {
     return previousParticle;
   }
 
-  public void setPreviousParticle(LogitFSParticle previousParticle) {
+  public void setPreviousParticle(LogitMixParticle previousParticle) {
     this.previousParticle = previousParticle;
   }
 
@@ -128,7 +140,7 @@ public class LogitFSParticle extends AbstractCloneableSerializable
   @Override
   public String toString() {
     StringBuilder builder = new StringBuilder();
-    builder.append("FruehwirthLogitParticle [linearState=").append(this.linearState);
+    builder.append("LogitMixParticle [linearState=").append(this.linearState);
     builder
         .append("\t, predPriorObsMean=").append(this.priorPredMean)
         .append(", predPriorObsCov=").append(this.priorPredCov).append("\n")
@@ -158,5 +170,6 @@ public class LogitFSParticle extends AbstractCloneableSerializable
   public double[] getComponentLikelihoods() {
     return this.compLikelihoods;
   }
+
   
 }

@@ -100,7 +100,7 @@ public class LogitFSWFFilterTest {
             F, G, modelCovariance, rng);
     plFilter.setNumParticles(2000);
 
-    final DataDistribution<LogitFSParticle> currentMixtureDistribution =
+    final DataDistribution<LogitMixParticle> currentMixtureDistribution =
         plFilter.createInitialLearnedObject();
     double lastRMSE = Double.POSITIVE_INFINITY;
     for (int i = 0; i < N; i++) {
@@ -114,7 +114,7 @@ public class LogitFSWFFilterTest {
       double sum = 0d;
       double sqSum = 0d;
       final double distTotalLogProb = currentMixtureDistribution.getTotal();
-      for (Entry<LogitFSParticle, ? extends Number> particleEntry : 
+      for (Entry<LogitMixParticle, ? extends Number> particleEntry : 
         currentMixtureDistribution.asMap().entrySet()) {
         final Vector particleState = particleEntry.getKey().getLinearState().getMean();
         final double rse = trueState.minus(particleState).dotDivide(trueState).norm2();
@@ -213,7 +213,7 @@ public class LogitFSWFFilterTest {
             F, G, modelCovariance, rng);
     plFilter.setNumParticles(50);
 
-    final DataDistribution<LogitFSParticle> currentMixtureDistribution =
+    final DataDistribution<LogitMixParticle> currentMixtureDistribution =
         plFilter.createInitialLearnedObject();
     double lastRMSE = Double.POSITIVE_INFINITY;
     for (int i = 0; i < N; i++) {
@@ -227,7 +227,7 @@ public class LogitFSWFFilterTest {
       double sum = 0d;
       double sqSum = 0d;
       final double distTotalLogProb = currentMixtureDistribution.getTotal();
-      for (Entry<LogitFSParticle, ? extends Number> particleEntry : 
+      for (Entry<LogitMixParticle, ? extends Number> particleEntry : 
         currentMixtureDistribution.asMap().entrySet()) {
         final Vector particleState = particleEntry.getKey().getLinearState().getMean();
         final double rse = trueState.minus(particleState).norm2();
@@ -338,7 +338,7 @@ public class LogitFSWFFilterTest {
     plFilter.setNumParticles(1000);
 
     double lastRMSE = Double.POSITIVE_INFINITY;
-    final DataDistribution<LogitFSParticle> currentMixtureDistribution =
+    final DataDistribution<LogitMixParticle> currentMixtureDistribution =
         plFilter.createInitialLearnedObject();
     for (int i = 0; i < N; i++) {
       final ObservedValue<Vector, Matrix> observation = observations.get(i);
@@ -351,7 +351,7 @@ public class LogitFSWFFilterTest {
       double sum = 0d;
       double sqSum = 0d;
       final double distTotalLogProb = currentMixtureDistribution.getTotal();
-      for (Entry<LogitFSParticle, ? extends Number> particleEntry : 
+      for (Entry<LogitMixParticle, ? extends Number> particleEntry : 
         currentMixtureDistribution.asMap().entrySet()) {
         final Vector particleState = particleEntry.getKey().getLinearState().getMean();
         final double rse = trueState.minus(particleState).norm2();

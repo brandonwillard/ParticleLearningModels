@@ -45,6 +45,18 @@ public class CategoricalHmmPlFilter extends HmmPlFilter<StandardHMM<Integer>, Hm
 
   public static class CategoricalHmmPlUpdater extends HmmPlUpdater<StandardHMM<Integer>, HmmTransitionState<Integer, StandardHMM<Integer>>, Integer> {
 
+    protected static final class HmmTransStateComparator<T> implements
+        Comparator<HmmTransitionState<T, StandardHMM<T>>> {
+      @Override
+      public int compare(HmmTransitionState<T, StandardHMM<T>> o1,
+        HmmTransitionState<T, StandardHMM<T>> o2) {
+        final int compVal =
+            Double.compare(o1.getStateLogWeight(),
+                o2.getStateLogWeight());
+        return compVal == 0 ? 1 : compVal;
+      }
+    }
+
     private static final long serialVersionUID = 7961478795131339665L;
 
     public CategoricalHmmPlUpdater(StandardHMM<Integer> hmm,
@@ -166,16 +178,7 @@ public class CategoricalHmmPlFilter extends HmmPlFilter<StandardHMM<Integer>, Hm
        * log likelihoods via the Baum-Welch results above.
        */
       final TreeSet<HmmTransitionState<T, StandardHMM<T>>> orderedDistribution =
-          Sets.newTreeSet(new Comparator<HmmTransitionState<T, StandardHMM<T>>>() {
-            @Override
-            public int compare(HmmTransitionState<T, StandardHMM<T>> o1,
-              HmmTransitionState<T, StandardHMM<T>> o2) {
-              final int compVal =
-                  Double.compare(o1.getStateLogWeight(),
-                      o2.getStateLogWeight());
-              return compVal == 0 ? 1 : compVal;
-            }
-          });
+          Sets.newTreeSet(new HmmTransStateComparator<T>());
       for (final ICombinatoricsVector<Integer> combination : gen) {
   
         HmmTransitionState<T, StandardHMM<T>> currentState = null;

@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit;
 
 import plm.hmm.DlmHiddenMarkovModel;
 import plm.hmm.GenericHMM.SimHmmObservedValue;
-import plm.hmm.gaussian.GaussianArHpHmmPlFilter;
+import plm.hmm.gaussian.GaussianArHpHmmPLFilter;
 import plm.hmm.gaussian.GaussianArHpTransitionState;
 import plm.hmm.HmmPlFilter;
 import plm.util.hmm.HmmResampleComparisonRunner;
@@ -101,7 +101,7 @@ public class GaussianArHpHmmRunner extends HmmResampleComparisonRunner {
     List<MultivariateGaussian> priorPhis = Lists.newArrayList(phiPrior1, phiPrior2);
 
     final HmmPlFilter<DlmHiddenMarkovModel, GaussianArHpTransitionState, Vector> wfFilter =
-        new GaussianArHpHmmPlFilter(trueHmm1, sigmaPrior, priorPhis, random, true);
+        new GaussianArHpHmmPLFilter(trueHmm1, sigmaPrior, priorPhis, random, true);
 
 
     final String path;

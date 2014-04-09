@@ -34,7 +34,7 @@ import com.statslibextensions.util.ObservedValue;
  * @author bwillard
  * 
  */
-public class GaussianArHpHmmPlFilter extends HmmPlFilter<DlmHiddenMarkovModel, GaussianArHpTransitionState, Vector> {
+public class GaussianArHpHmmPLFilter extends HmmPlFilter<DlmHiddenMarkovModel, GaussianArHpTransitionState, Vector> {
 
   public class GaussianArHpHmmPlUpdater extends HmmPlUpdater<DlmHiddenMarkovModel, GaussianArHpTransitionState, Vector> {
 
@@ -182,7 +182,7 @@ public class GaussianArHpHmmPlFilter extends HmmPlFilter<DlmHiddenMarkovModel, G
        */
       final InverseGammaDistribution scaleSS = predState.getScaleSS().clone();
       final List<MultivariateGaussian> systemOffsetsSS =
-          ObjectUtil.cloneSmartElementsAsArrayList(predState.getSystemOffsetsSS());
+          ObjectUtil.cloneSmartElementsAsArrayList(predState.getPsiSS());
 
       final int xDim = posteriorState.getInputDimensionality();
       final Matrix Ij = MatrixFactory.getDefault().createIdentity(xDim, xDim);
@@ -190,7 +190,7 @@ public class GaussianArHpHmmPlFilter extends HmmPlFilter<DlmHiddenMarkovModel, G
       H.setSubMatrix(0, 0, Ij);
       H.setSubMatrix(0, xDim, MatrixFactory.getDefault().createDiagonal(predState.getStateSample()));
       final Vector postStateSample = posteriorState.sample(this.rng);
-      final MultivariateGaussian priorPhi = predState.getSystemOffsetsSS().get(predState.getClassId());
+      final MultivariateGaussian priorPhi = predState.getPsiSS().get(predState.getClassId());
       final Vector phiPriorSmpl = priorPhi.sample(this.rng);
       final Vector xHdiff = postStateSample.minus(H.times(phiPriorSmpl));
 
@@ -256,9 +256,9 @@ public class GaussianArHpHmmPlFilter extends HmmPlFilter<DlmHiddenMarkovModel, G
 
   }
 
-  final Logger log = Logger.getLogger(GaussianArHpHmmPlFilter.class);
+  final Logger log = Logger.getLogger(GaussianArHpHmmPLFilter.class);
 
-  public GaussianArHpHmmPlFilter(DlmHiddenMarkovModel hmm, 
+  public GaussianArHpHmmPLFilter(DlmHiddenMarkovModel hmm, 
       InverseGammaDistribution priorScale, List<MultivariateGaussian> priorSysOffsets,
       Random rng, boolean resampleOnly) {
     super(resampleOnly);
@@ -279,7 +279,7 @@ public class GaussianArHpHmmPlFilter extends HmmPlFilter<DlmHiddenMarkovModel, G
     final DlmHiddenMarkovModel newHmm = prevState.getHmm().clone();
     final InverseGammaDistribution scaleSS = prevState.getScaleSS().clone();
     final List<MultivariateGaussian> systemSS = 
-        ObjectUtil.cloneSmartElementsAsArrayList(prevState.getSystemOffsetsSS());
+        ObjectUtil.cloneSmartElementsAsArrayList(prevState.getPsiSS());
 
     final GaussianArHpTransitionState newTransState =
         new GaussianArHpTransitionState(prevState, newHmm,

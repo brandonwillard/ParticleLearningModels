@@ -14,6 +14,7 @@ import gov.sandia.cognition.statistics.distribution.UnivariateGaussian;
 import java.util.List;
 import java.util.Random;
 
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Test;
 
@@ -29,7 +30,11 @@ import com.statslibextensions.util.ObservedValue;
 public class GaussianArHmmMkfFilterTest {
 
   protected static final Logger log = Logger
-        .getLogger(HmmResampleComparisonRunner.class);
+        .getLogger(GaussianArHmmMkfFilterTest.class);
+
+  static {
+    log.setLevel(Level.INFO);
+  }
 
   @Test
   public void test() {

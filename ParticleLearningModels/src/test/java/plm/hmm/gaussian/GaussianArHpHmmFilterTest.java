@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.junit.Test;
 
@@ -37,7 +38,11 @@ import com.statslibextensions.statistics.distribution.CountedDataDistribution;
 public class GaussianArHpHmmFilterTest {
 
   protected static final Logger log = Logger
-        .getLogger(HmmResampleComparisonRunner.class);
+        .getLogger(GaussianArHpHmmFilterTest.class);
+
+  static {
+    log.setLevel(Level.INFO);
+  }
 
   @Test
   public void test() {
@@ -56,7 +61,7 @@ public class GaussianArHpHmmFilterTest {
 
     List<Vector> truePsis = Lists.newArrayList(
         VectorFactory.getDefault().copyValues(3d, 0.2d),
-        VectorFactory.getDefault().copyValues(1d, 0.9d));
+        VectorFactory.getDefault().copyValues(-1d, 0.9d));
 
     LinearDynamicalSystem model1 = new LinearDynamicalSystem(
         MatrixFactory.getDefault().copyArray(new double[][] {{truePsis.get(0).getElement(1)}}),
@@ -74,10 +79,10 @@ public class GaussianArHpHmmFilterTest {
     trueKf2.setCurrentInput(VectorFactory.getDefault().copyValues(truePsis.get(1).getElement(0)));
     
     Vector initialClassProbs = VectorFactory.getDefault()
-            .copyArray(new double[] { 0.7d, 0.3d });
+            .copyArray(new double[] { 0.5d, 0.5d });
     Matrix classTransProbs = MatrixFactory.getDefault().copyArray(
-                new double[][] { { 0.7d, 0.7d },
-                    { 0.3d, 0.3d } });
+                new double[][] { { 0.5d, 0.5d },
+                    { 0.5d, 0.5d } });
     
     DlmHiddenMarkovModel trueHmm1 = new DlmHiddenMarkovModel(
         Lists.newArrayList(trueKf1, trueKf2), 
@@ -110,7 +115,7 @@ public class GaussianArHpHmmFilterTest {
     List<MultivariateGaussian> priorPhis = Lists.newArrayList(phiPrior1, phiPrior2);
 
     final HmmPlFilter<DlmHiddenMarkovModel, GaussianArHpTransitionState, Vector> wfFilter =
-        new GaussianArHpHmmPlFilter(trueHmm1, sigmaPrior, priorPhis, random, true);
+        new GaussianArHpHmmPLFilter(trueHmm1, sigmaPrior, priorPhis, random, true);
 
     final int K = 3;
     final int T = 200;

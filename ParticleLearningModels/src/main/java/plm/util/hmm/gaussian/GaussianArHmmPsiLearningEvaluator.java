@@ -52,7 +52,7 @@ public class GaussianArHmmPsiLearningEvaluator {
       final Object pobj = particle;
       Preconditions.checkState(pobj instanceof GaussianArHpTransitionState);
       GaussianArHpTransitionState gParticle = (GaussianArHpTransitionState) pobj;
-      List<MultivariateGaussian> psis = gParticle.getSystemOffsetsSS();
+      List<MultivariateGaussian> psis = gParticle.getPsiSS();
 
       // FIXME TODO how to order/identify psis?  sort by magnitude of offset?
       int i = 0;

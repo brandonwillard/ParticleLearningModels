@@ -11,10 +11,26 @@ import plm.hmm.DlmHiddenMarkovModel;
 
 import com.statslibextensions.util.ObservedValue;
 
+/**
+ * Particle encapsulating a sampled transition in an HMM.  This particular one
+ * tracks sufficient statistics for an AR(1) DLM, i.e.
+ * \[
+ *  y_t = F_t x_t + e_t,  \\
+ *  x_t = \alpha + \beta x_{t-1} + w_t/\sqrt{\phi}
+ * \] 
+ * In this class we define \(\psi = [\alpha, \beta] \sim N(m^\psi, C^\psi)\), and track its
+ * sufficient stats., and \(\phi\)'s (the scale), \(x_t\)'s (the state) sufficient stats. 
+ * as well.
+ * TODO: This is really a particle object; should make it a subclass thereof.
+ * @author bwillar0
+ *
+ */
 public class GaussianArHpTransitionState extends DlmTransitionState {
   
+  private static final long serialVersionUID = 3244374890924323039L;
+
   protected InverseGammaDistribution scaleSS;
-  protected List<MultivariateGaussian> systemOffsetsSS;
+  protected List<MultivariateGaussian> psiSS;
   protected Vector stateSample;
   protected double scaleSample;
   
@@ -22,23 +38,23 @@ public class GaussianArHpTransitionState extends DlmTransitionState {
       GaussianArHpTransitionState prevState,
       DlmHiddenMarkovModel hmm, Integer classId,
       ObservedValue<Vector,Void> data, MultivariateGaussian state, Vector stateSample, 
-      InverseGammaDistribution scaleSS, List<MultivariateGaussian> systemSS,
+      InverseGammaDistribution scaleSS, List<MultivariateGaussian> psiSS,
       double scaleSample) {
     super(prevState, hmm, classId, data, state);
     this.scaleSS = scaleSS;
-    this.systemOffsetsSS = systemSS;
+    this.psiSS = psiSS;
     this.stateSample = stateSample;
     this.scaleSample = scaleSample;
   }
 
   public GaussianArHpTransitionState(DlmHiddenMarkovModel hmm, Integer classId,
       ObservedValue<Vector,Void> data, MultivariateGaussian state, Vector stateSample,
-      InverseGammaDistribution scaleSS, List<MultivariateGaussian> systemSS,
+      InverseGammaDistribution scaleSS, List<MultivariateGaussian> psiSS,
       double scaleSample) {
     super(hmm, classId, data, state);
     this.stateSample = stateSample;
     this.scaleSS = scaleSS;
-    this.systemOffsetsSS = systemSS;
+    this.psiSS = psiSS;
     this.scaleSample = scaleSample;
   }
 
@@ -48,7 +64,7 @@ public class GaussianArHpTransitionState extends DlmTransitionState {
     clone.stateSample = this.stateSample.clone();
     clone.scaleSample = this.scaleSample;
     clone.scaleSS = this.scaleSS.clone();
-    clone.systemOffsetsSS = ObjectUtil.cloneSmartElementsAsArrayList(this.systemOffsetsSS);
+    clone.psiSS = ObjectUtil.cloneSmartElementsAsArrayList(this.psiSS);
     return clone;
   }
 
@@ -60,8 +76,8 @@ public class GaussianArHpTransitionState extends DlmTransitionState {
     return scaleSS;
   }
 
-  public List<MultivariateGaussian> getSystemOffsetsSS() {
-    return systemOffsetsSS;
+  public List<MultivariateGaussian> getPsiSS() {
+    return psiSS;
   }
 
   public double getScaleSample() {

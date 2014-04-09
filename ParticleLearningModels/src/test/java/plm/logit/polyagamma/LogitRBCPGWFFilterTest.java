@@ -1,4 +1,4 @@
-package plm.logit.fruehwirth;
+package plm.logit.polyagamma;
 
 import gov.sandia.cognition.math.MultivariateStatisticsUtil;
 import gov.sandia.cognition.math.matrix.Matrix;
@@ -33,10 +33,10 @@ import com.statslibextensions.statistics.bayesian.DlmUtils;
 import com.statslibextensions.util.ObservedValue;
 import com.statslibextensions.util.ObservedValue.SimObservedValue;
 
-public class LogitParRBCWFFilterTest {
+public class LogitRBCPGWFFilterTest {
 
   protected static final Logger log = Logger
-      .getLogger(LogitParRBCWFFilterTest.class);
+      .getLogger(LogitRBCPGWFFilterTest.class);
 
   static {
     log.setLevel(Level.INFO);
@@ -100,13 +100,15 @@ public class LogitParRBCWFFilterTest {
         {1d}});
     final Matrix modelCovariance = MatrixFactory.getDefault().copyArray(new double[][] {
         {0d}});
+    
+    final int K = 10;
 
-    final LogitParRBCWFFilter plFilter =
-        new LogitParRBCWFFilter(initialPrior, 
-            F, G, modelCovariance, rng);
-    plFilter.setNumParticles(4000);
+    final LogitRBCPGWFFilter plFilter =
+        new LogitRBCPGWFFilter(initialPrior, 
+            F, G, modelCovariance, K, rng);
+    plFilter.setNumParticles(2000);
 
-    final DataDistribution<LogitMixParticle> currentMixtureDistribution =
+    final DataDistribution<LogitPGParticle> currentMixtureDistribution =
         plFilter.createInitialLearnedObject();
     double lastRMSE = Double.POSITIVE_INFINITY;
 
@@ -133,7 +135,7 @@ public class LogitParRBCWFFilterTest {
       double sum = 0d;
       double sqSum = 0d;
       final double distTotalLogProb = currentMixtureDistribution.getTotal();
-      for (Entry<LogitMixParticle, ? extends Number> particleEntry : 
+      for (Entry<LogitPGParticle, ? extends Number> particleEntry : 
         currentMixtureDistribution.asMap().entrySet()) {
         final Vector particleState = particleEntry.getKey().getLinearState().getMean();
         final double rse = trueState.minus(particleState).dotDivide(trueState).norm2();

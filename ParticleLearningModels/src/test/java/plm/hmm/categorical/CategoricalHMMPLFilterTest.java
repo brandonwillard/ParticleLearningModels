@@ -18,6 +18,8 @@ import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import org.junit.Test;
 
 import plm.hmm.GenericHMM.SimHmmObservedValue;
@@ -34,6 +36,13 @@ import com.statslibextensions.util.ObservedValue;
 
 public class CategoricalHMMPLFilterTest {
 
+  protected static final Logger log = Logger
+      .getLogger(CategoricalHMMPLFilterTest.class);
+
+  static {
+    log.setLevel(Level.INFO);
+  }
+
   /**
    * Test that the HMM filter reaches an expected level of accuracy for
    * the marginal class posterior probabilities.
@@ -49,6 +58,7 @@ public class CategoricalHMMPLFilterTest {
 
     StandardHMM<Integer> trueHmm = 
         StandardHMM.create(HiddenMarkovModel.createRandom(S, s1Likelihood, rng));
+     
 
     final int T = 30;
     List<SimHmmObservedValue<Integer, Integer>> samples = trueHmm.sample(rng, T);

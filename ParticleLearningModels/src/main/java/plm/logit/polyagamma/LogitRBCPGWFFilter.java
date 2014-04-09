@@ -1,4 +1,4 @@
-package plm.logit.fruehwirth;
+package plm.logit.polyagamma;
 
 import gov.sandia.cognition.math.LogMath;
 import gov.sandia.cognition.math.matrix.Matrix;
@@ -7,6 +7,7 @@ import gov.sandia.cognition.math.matrix.Vector;
 import gov.sandia.cognition.math.matrix.VectorFactory;
 import gov.sandia.cognition.math.signals.LinearDynamicalSystem;
 import gov.sandia.cognition.statistics.DataDistribution;
+import gov.sandia.cognition.statistics.DiscreteSamplingUtil;
 import gov.sandia.cognition.statistics.bayesian.AbstractParticleFilter;
 import gov.sandia.cognition.statistics.bayesian.KalmanFilter;
 import gov.sandia.cognition.statistics.distribution.MultivariateGaussian;
@@ -18,8 +19,6 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.TreeMap;
 
-import plm.logit.LogitParticle;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -27,6 +26,7 @@ import com.google.common.primitives.Doubles;
 import com.statslibextensions.math.MutableDoubleCount;
 import com.statslibextensions.statistics.distribution.CountedDataDistribution;
 import com.statslibextensions.statistics.distribution.FruewirthSchnatterEV1Distribution;
+import com.statslibextensions.statistics.distribution.PolyaGammaDistribution;
 import com.statslibextensions.util.ExtSamplingUtils;
 import com.statslibextensions.util.ExtStatisticsUtils;
 import com.statslibextensions.util.ObservedValue;
@@ -40,24 +40,22 @@ import com.statslibextensions.util.ObservedValue;
  * @author bwillard
  * 
  */
-public class LogitFSWFFilter extends AbstractParticleFilter<ObservedValue<Vector, Matrix>, LogitMixParticle> {
+public class LogitRBCPGWFFilter extends 
+  AbstractParticleFilter<ObservedValue<Vector, Matrix>, LogitPGParticle> {
 
-  public class LogitFSWFUpdater extends AbstractCloneableSerializable
+  public class LogitRBCWUpdater extends AbstractCloneableSerializable
       implements
-        Updater<ObservedValue<Vector, Matrix>, LogitMixParticle> {
+        Updater<ObservedValue<Vector, Matrix>, LogitPGParticle> {
 
     final protected Random rng;
-    final protected FruewirthSchnatterEV1Distribution evDistribution;
     final protected KalmanFilter initialFilter;
     final protected MultivariateGaussian initialPrior;
 
-    public LogitFSWFUpdater(
+    public LogitRBCWUpdater(
         KalmanFilter initialFilter, 
         MultivariateGaussian initialPrior, 
-        FruewirthSchnatterEV1Distribution evDistribution, 
         Random rng) {
       this.initialPrior = initialPrior;
-      this.evDistribution = evDistribution;
       this.initialFilter = initialFilter;
       this.rng = rng;
     }
@@ -71,53 +69,28 @@ public class LogitFSWFFilter extends AbstractParticleFilter<ObservedValue<Vector
      * @return
      */
     @Override
-    public double computeLogLikelihood(LogitMixParticle particle, 
+    public double computeLogLikelihood(LogitPGParticle particle, 
         ObservedValue<Vector, Matrix> observation) {
       
-      // The prior pred. dist should already be conditional on the current component...
-      final double upperMean = particle.getPriorPredMean();
-      final double upperVar = particle.getPriorPredCov();
-      double logLikelihood = Double.NEGATIVE_INFINITY; 
-      for (int i = 0; i < 10; i++) {
-
-        final UnivariateGaussian partComponent = 
-            this.evDistribution.getDistributions().get(i);
-
-        // TODO FIXME: do this in log scale...
-        double partLogLik = 
-            ExtStatisticsUtils.normalCdf(0d, 
-            upperMean - partComponent.getMean(), 
-            Math.sqrt(upperVar + partComponent.getVariance()), 
-            true);
-        if (!observation.getObservedValue().isZero()) {
-          partLogLik = LogMath.subtract(0d, partLogLik);
-        }
-
-        // Now, tack on i's component weight
-        partLogLik += Math.log(this.evDistribution.getPriorWeights()[i]);  
-
-        logLikelihood = LogMath.add(logLikelihood, partLogLik);
-      }
+      double logLikelihood = UnivariateGaussian.PDF.logEvaluate(
+          particle.getAugResponseSample().getElement(0), 
+          particle.getPriorPredMean(), particle.getPriorPredCov()); 
       
       return logLikelihood;
     }
 
     @Override
-    public DataDistribution<LogitMixParticle> createInitialParticles(int numParticles) {
+    public DataDistribution<LogitPGParticle> createInitialParticles(int numParticles) {
 
-      final DataDistribution<LogitMixParticle> initialParticles =
+      final DataDistribution<LogitPGParticle> initialParticles =
           CountedDataDistribution.create(true);
       for (int i = 0; i < numParticles; i++) {
         
         final MultivariateGaussian initialPriorState = initialPrior.clone();
         final KalmanFilter kf = this.initialFilter.clone();
-        final int componentId = this.rng.nextInt(10);
-        final UnivariateGaussian evDist = this.evDistribution.
-            getDistributions().get(componentId);
         
-        final LogitMixParticle particleMvgDPDist =
-            new LogitMixParticle(null, 
-                kf, initialPriorState, evDist);
+        final LogitPGParticle particleMvgDPDist =
+            new LogitPGParticle(null, kf, initialPriorState);
         initialParticles.increment(particleMvgDPDist);
       }
       return initialParticles;
@@ -127,19 +100,18 @@ public class LogitFSWFFilter extends AbstractParticleFilter<ObservedValue<Vector
      * In this model/filter, there's no need for blind samples from the predictive distribution.
      */
     @Override
-    public LogitMixParticle update(LogitMixParticle previousParameter) {
+    public LogitPGParticle update(LogitPGParticle previousParameter) {
       return previousParameter;
     }
 
   }
 
-  final protected FruewirthSchnatterEV1Distribution evDistribution = 
-      new FruewirthSchnatterEV1Distribution();
+  final int K;
   final protected KalmanFilter initialFilter;
   
   /**
-   * Estimate a dynamic logit model using water-filling over a
-   * EV(1) mixture approximation (i.e. Fruehwirth-Schnatter (2007)).
+   * Estimate a dynamic logit model using water-filling using
+   * Polya-Gamma latent variables.
    * 
    * @param initialPrior
    * @param F
@@ -147,10 +119,10 @@ public class LogitFSWFFilter extends AbstractParticleFilter<ObservedValue<Vector
    * @param modelCovariance
    * @param rng
    */
-  public LogitFSWFFilter(
+  public LogitRBCPGWFFilter(
       MultivariateGaussian initialPrior,
       Matrix F, Matrix G, Matrix  modelCovariance, 
-      Random rng) {
+      int K, Random rng) {
     Preconditions.checkArgument(F.getNumRows() == 1);
     Preconditions.checkArgument(F.getNumColumns() == G.getNumRows());
     Preconditions.checkArgument(G.getNumColumns() == modelCovariance.getNumRows());
@@ -162,40 +134,35 @@ public class LogitFSWFFilter extends AbstractParticleFilter<ObservedValue<Vector
             modelCovariance,
             MatrixFactory.getDefault().copyArray(new double[][] {{0}})    
           );
-    this.setUpdater(new LogitFSWFUpdater(initialFilter, initialPrior,
-        evDistribution, rng));
+    this.setUpdater(new LogitRBCWUpdater(initialFilter, initialPrior, rng));
     this.setRandom(rng);
+    this.K = K;
   }
 
   @Override
-  public void update(DataDistribution<LogitMixParticle> target, ObservedValue<Vector, Matrix> data) {
+  public void update(DataDistribution<LogitPGParticle> target, ObservedValue<Vector, Matrix> data) {
 
     /*
      * Compute prior predictive log likelihoods for resampling.
      */
     double particleTotalLogLikelihood = Double.NEGATIVE_INFINITY;
-    final boolean isOne = !data.getObservedValue().isZero();
 
     /*
      * XXX: This treemap cannot be used for anything other than
      * what it's currently being used for, since the interface
      * contract is explicitly broken with our comparator.
      */
-    TreeMap<Double, LogitMixParticle> particleTree = Maps.
-        <Double, Double, LogitMixParticle>newTreeMap(
+    TreeMap<Double, LogitPGParticle> particleTree = Maps.
+        <Double, Double, LogitPGParticle>newTreeMap(
         new Comparator<Double>() {
           @Override
           public int compare(Double o1, Double o2) {
             return o1 < o2 ? 1 : -1;
           }
         });
-    for (Entry<LogitMixParticle, ? extends Number> particleEntry : target.asMap().entrySet()) {
-      final LogitMixParticle particle = particleEntry.getKey();
+    for (Entry<LogitPGParticle, ? extends Number> particleEntry : target.asMap().entrySet()) {
+      final LogitPGParticle particle = particleEntry.getKey();
 
-      /*
-       * Fruewirth-Schnatter's method for upper utility sampling, where
-       * instead of sampling the predictors, we use the mean.
-       */
       final MultivariateGaussian predictivePrior = particle.getLinearState().clone();
       KalmanFilter kf = particle.getRegressionFilter();
       final Matrix G = kf.getModel().getA();
@@ -204,11 +171,9 @@ public class LogitFSWFFilter extends AbstractParticleFilter<ObservedValue<Vector
       predictivePrior.setCovariance(
           G.times(predictivePrior.getCovariance()).times(G.transpose())
             .plus(kf.getModelCovariance()));
-      final Vector betaSample = 
-          predictivePrior.sample(getRandom());
-//          predictivePrior.getMean();
-      final double predPriorObsMean = 
-            F.times(betaSample).getElement(0);
+      final Vector betaMean = predictivePrior.getMean();
+      
+      final double k_t = data.getObservedValue().getElement(0) - 1d/2d;
 
       final int particleCount;
       if (particleEntry.getValue() instanceof MutableDoubleCount) {
@@ -217,58 +182,47 @@ public class LogitFSWFFilter extends AbstractParticleFilter<ObservedValue<Vector
         particleCount = 1;
       }
       for (int p = 0; p < particleCount; p++) {
-        final double dSampledAugResponse = sampleAugResponse(predPriorObsMean, isOne);
 
-        Vector sampledAugResponse = VectorFactory.getDefault().copyValues(dSampledAugResponse);
+        for (int j = 0; j < K; j++) {
 
-        for (int j = 0; j < 10; j++) {
-          final LogitMixParticle predictiveParticle = particle.clone();
-          predictiveParticle.setPreviousParticle(particle);
-          predictiveParticle.setBetaSample(betaSample);
-          predictiveParticle.setAugResponseSample(sampledAugResponse); 
-          predictiveParticle.setLinearState(predictivePrior);
-
-          final UnivariateGaussian componentDist = 
-              this.evDistribution.getDistributions().get(j);
-
-          predictiveParticle.setEVcomponent(componentDist);
+          /*
+           * Sample and compute the latent variable...
+           */
+          final double omega = PolyaGammaDistribution.sample(0d, this.getRandom());
+          final double z_t = k_t / omega;
           
+          final LogitPGParticle predictiveParticle = particle.clone();
+          predictiveParticle.setPreviousParticle(particle);
+          predictiveParticle.setBetaSample(betaMean);
+          predictiveParticle.setLinearState(predictivePrior);
+          
+          predictiveParticle.setAugResponseSample(
+              VectorFactory.getDefault().copyValues(z_t));
+
           /*
            * Update the observed data for the regression component.
            */
           predictiveParticle.getRegressionFilter().getModel().setC(F);
 
-          // TODO would be great to have a 1x1 matrix class here...
           final Matrix compVar = MatrixFactory.getDefault().copyArray(
-              new double[][] {{componentDist.getVariance()}});
+              new double[][] {{1d/omega}});
           predictiveParticle.getRegressionFilter().setMeasurementCovariance(compVar);
           
-          final double compPredPriorObsMean = 
-               F.times(betaSample).getElement(0) 
-               + componentDist.getMean();
+          final double compPredPriorObsMean = F.times(betaMean).getElement(0) ;
           final double compPredPriorObsCov = 
                F.times(predictivePrior.getCovariance()).times(F.transpose()).getElement(0, 0) 
-               + componentDist.getVariance();
+               + 1d/omega;
           predictiveParticle.setPriorPredMean(compPredPriorObsMean);
           predictiveParticle.setPriorPredCov(compPredPriorObsCov);
 
           final double logLikelihood = 
               this.updater.computeLogLikelihood(predictiveParticle, data);
 
-//          final double compLogLikelihood = UnivariateGaussian.PDF.logEvaluate(
-//                dSampledAugResponse, 
-//                compPredPriorObsMean,
-//                compPredPriorObsCov);
-
           // FIXME we're just assuming equivalent particles had equal weight
           final double priorLogWeight = particleEntry.getValue().doubleValue() 
               - Math.log(particleCount);
           
-          final double jointLogLikelihood = 
-              logLikelihood
-              // add the weight for this component
-              + Math.log(this.evDistribution.getPriorWeights()[j])
-              + priorLogWeight;
+          final double jointLogLikelihood = logLikelihood + priorLogWeight;
 
           predictiveParticle.setLogWeight(jointLogLikelihood);
 
@@ -278,7 +232,7 @@ public class LogitFSWFFilter extends AbstractParticleFilter<ObservedValue<Vector
       }
     }
 
-    final CountedDataDistribution<LogitMixParticle> resampledParticles =
+    final CountedDataDistribution<LogitPGParticle> resampledParticles =
         ExtSamplingUtils.waterFillingResample( 
             Doubles.toArray(particleTree.keySet()), 
             particleTotalLogLikelihood,
@@ -289,8 +243,8 @@ public class LogitFSWFFilter extends AbstractParticleFilter<ObservedValue<Vector
      * Propagate
      */
     target.clear();
-    for (final Entry<LogitMixParticle, ? extends Number> particleEntry : resampledParticles.asMap().entrySet()) {
-      final LogitMixParticle updatedParticle = sufficientStatUpdate(
+    for (final Entry<LogitPGParticle, ? extends Number> particleEntry : resampledParticles.asMap().entrySet()) {
+      final LogitPGParticle updatedParticle = sufficientStatUpdate(
           particleEntry.getKey(), data);
       final Number value = particleEntry.getValue();
       if (particleEntry.getValue() instanceof MutableDoubleCount) {
@@ -308,49 +262,15 @@ public class LogitFSWFFilter extends AbstractParticleFilter<ObservedValue<Vector
 
   }
 
-  private double sampleAugResponse(double predPriorObsMean, boolean isOne) {
-    /*
-     * compute X * beta
-     * TODO FIXME: We really should scale the
-     * predictor matrix, or something similar, otherwise,
-     * the following value can be infinity.
-     */
-    final double lambda = Math.exp(predPriorObsMean);
-    final double dSampledAugResponse;
-    if (Doubles.isFinite(lambda)) {
-      final double mlU = -Math.log(this.random.nextDouble());
-      dSampledAugResponse = -Math.log(mlU/(1d+lambda) 
-          - (!isOne ? Math.log(this.random.nextDouble())/lambda : 0d));
-    } else {
-      final double mlU = -Math.log(this.random.nextDouble());
-      dSampledAugResponse = -Math.log(mlU/(1d+lambda) 
-          - (!isOne ? Math.log(this.random.nextDouble())/lambda : 0d));
-      
-    }
-      
-    return dSampledAugResponse;
-  }
+  private LogitPGParticle sufficientStatUpdate(
+      LogitPGParticle priorParticle, ObservedValue<Vector, Matrix> data) {
 
-  private LogitMixParticle sufficientStatUpdate(
-      LogitMixParticle priorParticle, ObservedValue<Vector, Matrix> data) {
-    final LogitMixParticle updatedParticle = priorParticle.clone();
-    
+    final LogitPGParticle updatedParticle = priorParticle.clone();
     final KalmanFilter filter = updatedParticle.getRegressionFilter(); 
-    final UnivariateGaussian evComponent = updatedParticle.EVcomponent;
-    // TODO we should've already set this, so it might be redundant.
-    filter.setMeasurementCovariance(
-        MatrixFactory.getDefault().copyArray(new double[][] {{
-          evComponent.getVariance()}}));
 
-    final Vector sampledAugResponse = priorParticle.getAugResponseSample();
-    final Vector diffAugResponse = 
-        sampledAugResponse.minus(VectorFactory.getDefault().copyArray(
-        new double[] {
-            evComponent.getMean().doubleValue()
-            }));
     final MultivariateGaussian posteriorState = updatedParticle.getLinearState().clone();
-    filter.update(posteriorState, 
-        diffAugResponse);
+    filter.update(posteriorState, updatedParticle.getAugResponseSample());
+
     updatedParticle.setLinearState(posteriorState);
     
     return updatedParticle;

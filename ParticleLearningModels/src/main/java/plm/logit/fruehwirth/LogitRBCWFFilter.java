@@ -19,6 +19,8 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.TreeMap;
 
+import plm.logit.LogitParticle;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -261,7 +263,7 @@ public class LogitRBCWFFilter extends AbstractParticleFilter<ObservedValue<Vecto
               + Math.log(this.evDistribution.getPriorWeights()[j])
               + priorLogWeight;
 
-          predictiveParticle.setWeight(jointLogLikelihood);
+          predictiveParticle.setLogWeight(jointLogLikelihood);
 
           particleTotalLogLikelihood = LogMath.add(particleTotalLogLikelihood, jointLogLikelihood);
           particleTree.put(jointLogLikelihood, predictiveParticle);

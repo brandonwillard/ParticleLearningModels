@@ -31,6 +31,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import plm.logit.LogitParticle;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -301,7 +303,7 @@ public class LogitParRBCWFFilter extends AbstractParticleFilter<ObservedValue<Ve
               + Math.log(filter.evDistribution.getPriorWeights()[j])
               + priorLogWeight;
 
-          predictiveParticle.setWeight(jointLogLikelihood);
+          predictiveParticle.setLogWeight(jointLogLikelihood);
 
           sourceTotalLogLikelihood = LogMath.add(sourceTotalLogLikelihood, jointLogLikelihood);
           particleTree.put(jointLogLikelihood, predictiveParticle);

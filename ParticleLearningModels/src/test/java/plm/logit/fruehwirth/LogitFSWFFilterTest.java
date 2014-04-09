@@ -1,12 +1,6 @@
 package plm.logit.fruehwirth;
 
-import static org.junit.Assert.fail;
 import gov.sandia.cognition.math.MultivariateStatisticsUtil;
-import gov.sandia.cognition.math.MutableDouble;
-import gov.sandia.cognition.math.RingAccumulator;
-import gov.sandia.cognition.math.RingAverager;
-import gov.sandia.cognition.math.WeightedNumberAverager;
-import gov.sandia.cognition.math.WeightedRingAverager;
 import gov.sandia.cognition.math.matrix.Matrix;
 import gov.sandia.cognition.math.matrix.MatrixFactory;
 import gov.sandia.cognition.math.matrix.Vector;
@@ -14,7 +8,6 @@ import gov.sandia.cognition.math.matrix.VectorFactory;
 import gov.sandia.cognition.math.signals.LinearDynamicalSystem;
 import gov.sandia.cognition.statistics.DataDistribution;
 import gov.sandia.cognition.statistics.bayesian.KalmanFilter;
-import gov.sandia.cognition.statistics.distribution.LogisticDistribution;
 import gov.sandia.cognition.statistics.distribution.MultivariateGaussian;
 import gov.sandia.cognition.util.DefaultWeightedValue;
 import gov.sandia.cognition.util.Pair;
@@ -26,8 +19,11 @@ import java.util.Random;
 
 import junit.framework.Assert;
 
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
 import org.junit.Test;
 
+import plm.logit.fruehwirth.LogitFSWFFilter;
 import plm.util.logit.fruehwirth.LogitTrueState;
 
 import com.google.common.base.Function;
@@ -37,6 +33,13 @@ import com.statslibextensions.util.ObservedValue;
 import com.statslibextensions.util.ObservedValue.SimObservedValue;
 
 public class LogitFSWFFilterTest {
+
+  protected static final Logger log = Logger
+      .getLogger(LogitFSWFFilterTest.class);
+
+  static {
+    log.setLevel(Level.INFO);
+  }
 
   @Test
   public void test1() {
@@ -105,7 +108,7 @@ public class LogitFSWFFilterTest {
     double lastRMSE = Double.POSITIVE_INFINITY;
     for (int i = 0; i < N; i++) {
       final ObservedValue<Vector, Matrix> observation = observations.get(i);
-      System.out.println("obs:" + observation);
+      log.info("obs:" + observation);
       plFilter.update(currentMixtureDistribution, observation);
 
       List<WeightedValue<Vector>> wMeanValues = Lists.newArrayList();
@@ -127,10 +130,10 @@ public class LogitFSWFFilterTest {
         sqSum += rse * wRse; 
       }
       lastRMSE = sum;
-      System.out.println("posterior RMSE: " + sum + " (" + sqSum + ")");
+      log.info("posterior RMSE: " + sum + " (" + sqSum + ")");
       Pair<Vector, Matrix> wMeanRes = MultivariateStatisticsUtil.computeWeightedMeanAndCovariance(wMeanValues);
       Pair<Vector, Matrix> wCovRes = MultivariateStatisticsUtil.computeWeightedMeanAndCovariance(wCovValues);
-      System.out.println("\ttrue: " + trueState + '\n'
+      log.info("\ttrue: " + trueState + '\n'
           + ", pMean:" + wMeanRes.getFirst()
           + " (" + wMeanRes.getSecond() + ")"
           + ", pCov:" + wCovRes.getFirst() 
@@ -138,7 +141,7 @@ public class LogitFSWFFilterTest {
           );
     }
 
-    System.out.println("finished simulation");
+    log.info("finished simulation");
 
     Assert.assertTrue(lastRMSE < 0.5d);
 
@@ -218,7 +221,7 @@ public class LogitFSWFFilterTest {
     double lastRMSE = Double.POSITIVE_INFINITY;
     for (int i = 0; i < N; i++) {
       final ObservedValue<Vector, Matrix> observation = observations.get(i);
-      System.out.println("obs:" + observation);
+      log.info("obs:" + observation);
       plFilter.update(currentMixtureDistribution, observation);
 
       List<WeightedValue<Vector>> wMeanValues = Lists.newArrayList();
@@ -240,10 +243,10 @@ public class LogitFSWFFilterTest {
         sqSum += rse * wRse; 
       }
       lastRMSE = sum;
-      System.out.println("posterior RMSE: " + sum + " (" + sqSum + ")");
+      log.info("posterior RMSE: " + sum + " (" + sqSum + ")");
       Pair<Vector, Matrix> wMeanRes = MultivariateStatisticsUtil.computeWeightedMeanAndCovariance(wMeanValues);
       Pair<Vector, Matrix> wCovRes = MultivariateStatisticsUtil.computeWeightedMeanAndCovariance(wCovValues);
-      System.out.println("\ttrue: " + trueState + '\n'
+      log.info("\ttrue: " + trueState + '\n'
           + ", pMean:" + wMeanRes.getFirst()
           + " (" + wMeanRes.getSecond() + ")"
           + ", pCov:" + wCovRes.getFirst() 
@@ -251,7 +254,7 @@ public class LogitFSWFFilterTest {
           );
     }
 
-    System.out.println("finished simulation");
+    log.info("finished simulation");
 
     Assert.assertTrue(lastRMSE < 1d);
 
@@ -342,7 +345,7 @@ public class LogitFSWFFilterTest {
         plFilter.createInitialLearnedObject();
     for (int i = 0; i < N; i++) {
       final ObservedValue<Vector, Matrix> observation = observations.get(i);
-      System.out.println("obs:" + observation);
+      log.info("obs:" + observation);
       plFilter.update(currentMixtureDistribution, observation);
 
       List<WeightedValue<Vector>> wMeanValues = Lists.newArrayList();
@@ -365,10 +368,10 @@ public class LogitFSWFFilterTest {
         sqSum += rse * wRse; 
       }
       lastRMSE = sum;
-      System.out.println("posterior RMSE: " + sum + " (" + sqSum + ")");
+      log.info("posterior RMSE: " + sum + " (" + sqSum + ")");
       Pair<Vector, Matrix> wMeanRes = MultivariateStatisticsUtil.computeWeightedMeanAndCovariance(wMeanValues);
       Pair<Vector, Matrix> wCovRes = MultivariateStatisticsUtil.computeWeightedMeanAndCovariance(wCovValues);
-      System.out.println("\ttrue: " + trueState + '\n'
+      log.info("\ttrue: " + trueState + '\n'
           + ", pMean:" + wMeanRes.getFirst()
           + " (" + wMeanRes.getSecond() + ")"
           + ", pCov:" + wCovRes.getFirst() 
@@ -376,7 +379,7 @@ public class LogitFSWFFilterTest {
           );
     }
 
-    System.out.println("finished simulation");
+    log.info("finished simulation");
 
     Assert.assertTrue(lastRMSE < 1d);
 

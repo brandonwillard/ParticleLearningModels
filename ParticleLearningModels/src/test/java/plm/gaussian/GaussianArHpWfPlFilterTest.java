@@ -23,7 +23,7 @@ import org.junit.Test;
 import plm.hmm.DlmHiddenMarkovModel;
 import plm.hmm.GenericHMM.SimHmmObservedValue;
 import plm.hmm.HmmPlFilter;
-import plm.hmm.gaussian.GaussianArHpHmmPlFilter;
+import plm.hmm.gaussian.GaussianArHpHmmPLFilter;
 import plm.hmm.gaussian.GaussianArHpTransitionState;
 import plm.util.gaussian.GaussianArHpEvaluator;
 import plm.util.hmm.HmmResampleComparisonRunner;

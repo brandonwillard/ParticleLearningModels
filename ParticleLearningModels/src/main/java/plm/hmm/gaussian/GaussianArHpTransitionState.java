@@ -15,14 +15,16 @@ import com.statslibextensions.util.ObservedValue;
  * Particle encapsulating a sampled transition in an HMM.  This particular one
  * tracks sufficient statistics for an AR(1) DLM, i.e.
  * \[
- *  y_t = F_t x_t + e_t,  \\
- *  x_t = \alpha + \beta x_{t-1} + w_t/\sqrt{\phi}
+ *  y_t = F_t x_t + v_t, \, v_t \sim N(0, V_t/\phi)  \\
+ *  x_t = \alpha + \beta x_{t-1} + w_t, \, w_t \sim N(0, W_t/\phi) 
  * \] 
  * In this class we define \(\psi = [\alpha, \beta] \sim N(m^\psi, C^\psi)\), and track its
- * sufficient stats., and \(\phi\)'s (the scale), \(x_t\)'s (the state) sufficient stats. 
- * as well.
+ * sufficient stats., and \(\phi \sim IG(n, S)\)'s (the scale), \(x_t \sim N(m_t^x, C_t^x)\)'s 
+ * (the state) sufficient stats., as well.
+ * 
  * TODO: This is really a particle object; should make it a subclass thereof.
- * @author bwillar0
+ * 
+ * @author Brandon Willard 
  *
  */
 public class GaussianArHpTransitionState extends DlmTransitionState {

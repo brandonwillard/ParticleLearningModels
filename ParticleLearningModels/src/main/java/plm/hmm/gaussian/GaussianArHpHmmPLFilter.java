@@ -29,9 +29,15 @@ import com.statslibextensions.util.ObservedValue;
 /**
  * A Particle Learning filter for a multivariate Gaussian AR(1) mixture obs model
  * with shared state and obs covariance hyper priors (via parameter learning) 
- * where the mixture components follow a HMM.
+ * where the mixture components follow a HMM. I.e.
+ * \[
+ *  y_t = F_t x_t + v_t, \, v_t \sim N(0, V_t/\phi)  \\
+ *  x_t = \alpha + \beta x_{t-1} + w_t, \, w_t \sim N(0, W_t/\phi) 
+ * \] 
+ * where \(\psi = [\alpha, \beta] \sim N(m^\psi, C^\psi)\),  \(\phi \sim IG(n, S)\) (the scale), 
+ * \(x_t \sim N(m_t^x, C_t^x)\) (the state).
  * 
- * @author bwillard
+ * @author Brandon Willard
  * 
  */
 public class GaussianArHpHmmPLFilter extends HmmPlFilter<DlmHiddenMarkovModel, GaussianArHpTransitionState, Vector> {

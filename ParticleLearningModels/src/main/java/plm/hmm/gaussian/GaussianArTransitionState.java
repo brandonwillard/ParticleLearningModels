@@ -12,7 +12,6 @@ import com.statslibextensions.util.ObservedValue;
  * 
  * @author bwillard
  *
- * @param <T>
  */
 public class GaussianArTransitionState extends HmmTransitionState<Double, StandardHMM<Double>> {
   

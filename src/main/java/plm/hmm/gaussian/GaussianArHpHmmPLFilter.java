@@ -31,10 +31,10 @@ import com.statslibextensions.util.ObservedValue;
  * with shared state and obs covariance hyper priors (via parameter learning) 
  * where the mixture components follow a HMM. I.e.
  * \[
- *  y_t = F_t x_t + v_t, \, v_t \sim N(0, V_t/\phi)  \\
- *  x_t = \alpha + \beta x_{t-1} + w_t, \, w_t \sim N(0, W_t/\phi) 
+ *  y_t = F_t x_t + v_t, \, v_t \sim N(0, V_t \phi)  \\
+ *  x_t = \alpha + \beta x_{t-1} + w_t, \, w_t \sim N(0, W_t \phi) 
  * \] 
- * where \(\psi = [\alpha, \beta] \sim N(m^\psi, C^\psi)\),  \(\phi \sim IG(n, S)\) (the scale), 
+ * where \(\psi = [\alpha, \beta] \sim N(m^\psi, C^\psi)\),  \(\phi \sim IG(n, S)\) (the inverse scale), 
  * \(x_t \sim N(m_t^x, C_t^x)\) (the state).
  * 
  * @author Brandon Willard
@@ -47,7 +47,7 @@ public class GaussianArHpHmmPLFilter extends HmmPlFilter<DlmHiddenMarkovModel, G
     /*
      * Prior scale mixure for system and measurement equations.
      */
-    final protected InverseGammaDistribution priorScale;
+    final protected InverseGammaDistribution priorInvScale;
 
     /*
      * Prior system const. term offset and AR(1) as a stacked vector, respectively.
@@ -55,10 +55,10 @@ public class GaussianArHpHmmPLFilter extends HmmPlFilter<DlmHiddenMarkovModel, G
     final protected List<MultivariateGaussian> priorOffsets;
     
     public GaussianArHpHmmPlUpdater(DlmHiddenMarkovModel priorHmm, 
-        InverseGammaDistribution priorScale, 
+        InverseGammaDistribution priorInvScale, 
         List<MultivariateGaussian> priorOffsets, Random rng) {
       super(priorHmm, rng);
-      this.priorScale = priorScale;
+      this.priorInvScale = priorInvScale;
       this.priorOffsets = priorOffsets;
     }
 
@@ -107,7 +107,7 @@ public class GaussianArHpHmmPLFilter extends HmmPlFilter<DlmHiddenMarkovModel, G
             DiscreteSamplingUtil.sampleIndexFromProbabilities(
                 this.rng, this.priorHmm.getClassMarginalProbabilities());
 
-        final InverseGammaDistribution thisPriorScale = this.priorScale.clone();
+        final InverseGammaDistribution thisPriorInvScale = this.priorInvScale.clone();
 
         final DlmHiddenMarkovModel particlePriorHmm = this.priorHmm.clone();
         /*
@@ -117,7 +117,7 @@ public class GaussianArHpHmmPLFilter extends HmmPlFilter<DlmHiddenMarkovModel, G
          * to the intended model.
          */
         final List<MultivariateGaussian> thesePriorOffsets = Lists.newArrayList();
-        final double scaleSample = thisPriorScale.sample(this.rng);
+        final double invScaleSample = thisPriorInvScale.sample(this.rng);
         int k = 0;
         for (KalmanFilter kf : particlePriorHmm.getStateFilters()) {
           final MultivariateGaussian thisPriorOffset = priorOffsets.get(k).clone();
@@ -143,12 +143,12 @@ public class GaussianArHpHmmPLFilter extends HmmPlFilter<DlmHiddenMarkovModel, G
           final Matrix measIdent = MatrixFactory.getDefault().createIdentity(
               kf.getModel().getOutputDimensionality(), 
               kf.getModel().getOutputDimensionality());
-          kf.setMeasurementCovariance(measIdent.scale(scaleSample));
+          kf.setMeasurementCovariance(measIdent.scale(invScaleSample));
 
           final Matrix modelIdent = MatrixFactory.getDefault().createIdentity(
               kf.getModel().getStateDimensionality(), 
               kf.getModel().getStateDimensionality());
-          kf.setModelCovariance(modelIdent.scale(scaleSample));
+          kf.setModelCovariance(modelIdent.scale(invScaleSample));
         }
 
         final KalmanFilter kf = Iterables.get(particlePriorHmm.getStateFilters(), 
@@ -160,8 +160,8 @@ public class GaussianArHpHmmPLFilter extends HmmPlFilter<DlmHiddenMarkovModel, G
             new GaussianArHpTransitionState(particlePriorHmm, sampledClass,
                 ObservedValue.<Vector>create(0, null), priorState, 
                 priorStateSample,
-                thisPriorScale, thesePriorOffsets,
-                scaleSample);
+                thisPriorInvScale, thesePriorOffsets,
+                invScaleSample);
 
         final double logWeight = -Math.log(numParticles);
         particle.setStateLogWeight(logWeight);
@@ -186,7 +186,7 @@ public class GaussianArHpHmmPLFilter extends HmmPlFilter<DlmHiddenMarkovModel, G
        * they can be done off-line, but we'll do them now.
        * TODO FIXME check that the input/offset thing is working!
        */
-      final InverseGammaDistribution scaleSS = predState.getScaleSS().clone();
+      final InverseGammaDistribution invScaleSS = predState.getInvScaleSS().clone();
       final List<MultivariateGaussian> systemOffsetsSS =
           ObjectUtil.cloneSmartElementsAsArrayList(predState.getPsiSS());
 
@@ -200,14 +200,14 @@ public class GaussianArHpHmmPLFilter extends HmmPlFilter<DlmHiddenMarkovModel, G
       final Vector phiPriorSmpl = priorPhi.sample(this.rng);
       final Vector xHdiff = postStateSample.minus(H.times(phiPriorSmpl));
 
-      final double newN = scaleSS.getShape() + 1d;
-      final double d = scaleSS.getScale() + xHdiff.dotProduct(xHdiff);
+      final double newN = invScaleSS.getShape() + 1d;
+      final double d = invScaleSS.getScale() + xHdiff.dotProduct(xHdiff);
       
-      scaleSS.setScale(d);
-      scaleSS.setShape(newN);
+      invScaleSS.setScale(d);
+      invScaleSS.setShape(newN);
       
       // FIXME TODO: crappy sampler
-      final double newScaleSmpl = scaleSS.sample(this.rng);
+      final double newInvScaleSmpl = invScaleSS.sample(this.rng);
       
       /*
        * Update state and measurement covariances, which
@@ -215,18 +215,18 @@ public class GaussianArHpHmmPLFilter extends HmmPlFilter<DlmHiddenMarkovModel, G
        */
       kf.setMeasurementCovariance(MatrixFactory.getDefault().createDiagonal(
           VectorFactory.getDefault().createVector(kf.getModel().getOutputDimensionality(), 
-              newScaleSmpl)));
+              newInvScaleSmpl)));
 
       kf.setModelCovariance(MatrixFactory.getDefault().createDiagonal(
           VectorFactory.getDefault().createVector(kf.getModel().getStateDimensionality(), 
-              newScaleSmpl)));
+              newInvScaleSmpl)));
 
       /*
        * Update offset and AR(1) prior(s).
-       * Note that we divide out the previous scale param, since
+       * Note that we divide out the previous inv scale param, since
        * we want to update A alone.
        */
-      final Matrix priorAInv = priorPhi.getCovariance().scale(1d/predState.getScaleSample()).inverse();
+      final Matrix priorAInv = priorPhi.getCovariance().scale(1d/predState.getInvScaleSample()).inverse();
       /*
        * TODO FIXME: we don't have a generalized outer product, so we're only
        * supporting the 1d case for now.
@@ -238,7 +238,7 @@ public class GaussianArHpHmmPLFilter extends HmmPlFilter<DlmHiddenMarkovModel, G
           H.transpose().times(postStateSample)));
       final MultivariateGaussian postPhi = systemOffsetsSS.get(predState.getClassId());
       postPhi.setMean(postPhiMean);
-      postPhi.setCovariance(postAInv.scale(newScaleSmpl));
+      postPhi.setCovariance(postAInv.scale(newInvScaleSmpl));
       
       final Vector postPhiSmpl = postPhi.sample(this.rng);
       final Matrix smplArTerms = MatrixFactory.getDefault().createDiagonal(
@@ -255,7 +255,7 @@ public class GaussianArHpHmmPLFilter extends HmmPlFilter<DlmHiddenMarkovModel, G
       final GaussianArHpTransitionState postState =
           new GaussianArHpTransitionState(newHmm,
               predState.getClassId(), predState.getObservation(), 
-              posteriorState, postStateSample, scaleSS, systemOffsetsSS, newScaleSmpl);
+              posteriorState, postStateSample, invScaleSS, systemOffsetsSS, newInvScaleSmpl);
 
       return postState;
     }
@@ -265,10 +265,10 @@ public class GaussianArHpHmmPLFilter extends HmmPlFilter<DlmHiddenMarkovModel, G
   final Logger log = Logger.getLogger(GaussianArHpHmmPLFilter.class);
 
   public GaussianArHpHmmPLFilter(DlmHiddenMarkovModel hmm, 
-      InverseGammaDistribution priorScale, List<MultivariateGaussian> priorSysOffsets,
+      InverseGammaDistribution priorInvScale, List<MultivariateGaussian> priorSysOffsets,
       Random rng, boolean resampleOnly) {
     super(resampleOnly);
-    this.setUpdater(new GaussianArHpHmmPlUpdater(hmm, priorScale, priorSysOffsets, rng));
+    this.setUpdater(new GaussianArHpHmmPlUpdater(hmm, priorInvScale, priorSysOffsets, rng));
     this.setRandom(rng);
   }
 
@@ -283,14 +283,14 @@ public class GaussianArHpHmmPLFilter extends HmmPlFilter<DlmHiddenMarkovModel, G
     kf.predict(priorPredictedState);
     
     final DlmHiddenMarkovModel newHmm = prevState.getHmm().clone();
-    final InverseGammaDistribution scaleSS = prevState.getScaleSS().clone();
-    final List<MultivariateGaussian> systemSS = 
+    final InverseGammaDistribution invScaleSS = prevState.getInvScaleSS().clone();
+    final List<MultivariateGaussian> psiSS = 
         ObjectUtil.cloneSmartElementsAsArrayList(prevState.getPsiSS());
 
     final GaussianArHpTransitionState newTransState =
         new GaussianArHpTransitionState(prevState, newHmm,
             predClass, data, priorPredictedState, prevState.getStateSample(), 
-            scaleSS, systemSS, prevState.getScaleSample());
+            invScaleSS, psiSS, prevState.getInvScaleSample());
 
     return newTransState;
   }
